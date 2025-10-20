@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.8 - Speed Optimizations
+// VERSION: 2.0.9 - Accurate Total Usage Stats
 // LAST UPDATED: 2025-10-20
-// CHANGES: Enable parallel tool calls, streamline superlative query instructions
+// CHANGES: Sum usage across all API calls instead of showing only last call
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1397,6 +1397,22 @@ class AgentLoop {
     this.callbacks = callbacks;
     const startTime = Date.now();
 
+    // Accumulate total usage across all API calls
+    const totalUsage = {
+      total_input_tokens: 0,
+      total_cached_tokens: 0,
+      total_output_tokens: 0,
+      total_reasoning_tokens: 0
+    };
+
+    const accumulateUsage = (usage) => {
+      if (!usage) return;
+      totalUsage.total_input_tokens += usage.input_tokens || 0;
+      totalUsage.total_cached_tokens += usage.input_tokens_details?.cached_tokens || 0;
+      totalUsage.total_output_tokens += usage.output_tokens || 0;
+      totalUsage.total_reasoning_tokens += usage.output_tokens_details?.reasoning_tokens || 0;
+    };
+
     try {
       const systemMessages = this.plugin.contextBuilder.buildSystemMessages();
 
@@ -1413,13 +1429,14 @@ class AgentLoop {
       ];
 
       let response = await this.step(firstTurnInput);
+      accumulateUsage(response.usage);
 
       if (this.isDone) {
         return {
           success: true,
           finalOutput: this.finalOutput,
           iterations: this.iteration,
-          usage: response.usage,
+          usage: totalUsage,
           elapsedMs: Date.now() - startTime
         };
       }
@@ -1433,13 +1450,14 @@ class AgentLoop {
         if (parsed.toolCalls && parsed.toolCalls.length > 0) {
           const outputs = await this.executeToolCalls(parsed.toolCalls);
           response = await this.plugin.apiHandler.flushToolOutputs(outputs);
+          accumulateUsage(response.usage);
 
           if (this.isDone) {
             return {
               success: true,
               finalOutput: this.finalOutput,
               iterations: this.iteration,
-              usage: response.usage,
+              usage: totalUsage,
               elapsedMs: Date.now() - startTime
             };
           }
@@ -1451,7 +1469,7 @@ class AgentLoop {
             success: true,
             finalOutput: this.finalOutput,
             iterations: this.iteration,
-            usage: response.usage,
+            usage: totalUsage,
             elapsedMs: Date.now() - startTime
           };
         } else {
@@ -1467,6 +1485,7 @@ class AgentLoop {
         success: false,
         error: error.message,
         iterations: this.iteration,
+        usage: totalUsage,
         elapsedMs: Date.now() - startTime
       };
     }
@@ -1761,7 +1780,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.8'
+      text: 'v2.0.9'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -1986,11 +2005,12 @@ class ChatView extends ItemView {
   }
   
   addUsageStats(usage, iterations, elapsedMs = 0) {
-    // Token breakdown
-    const cachedTokens = usage.input_tokens_details?.cached_tokens || 0;
-    const totalInput = usage.input_tokens || 0;
+    // Token breakdown (now showing totals across all API calls)
+    const cachedTokens = usage.total_cached_tokens || 0;
+    const totalInput = usage.total_input_tokens || 0;
     const freshTokens = totalInput - cachedTokens;
-    const outputTokens = usage.output_tokens || 0;
+    const outputTokens = usage.total_output_tokens || 0;
+    const reasoningTokens = usage.total_reasoning_tokens || 0;
 
     // Pricing (cached tokens get 90% discount)
     const pricing = PRICING['gpt-5-nano'];
@@ -2004,13 +2024,13 @@ class ChatView extends ItemView {
 
     // Format as list
     const statsLines = [
-      '--- Stats ---',
+      '--- Stats (Total Across All API Calls) ---',
       `• Iterations: ${iterations}`,
       `• Time: ${elapsedSec}s`,
       `• Tokens:`,
       `  - Cached input: ${cachedTokens.toLocaleString()} ($${costCached.toFixed(6)})`,
       `  - Fresh input: ${freshTokens.toLocaleString()} ($${costFresh.toFixed(6)})`,
-      `  - Output: ${outputTokens.toLocaleString()} ($${costOutput.toFixed(6)})`,
+      `  - Output: ${outputTokens.toLocaleString()} (${reasoningTokens.toLocaleString()} reasoning) ($${costOutput.toFixed(6)})`,
       `• Total Cost: $${costTotal.toFixed(6)}`
     ];
 
