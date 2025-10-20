@@ -609,25 +609,16 @@ class ToolManager {
   
   normalizePaths(within_paths) {
     let p = within_paths || [];
-    
+
     if (Array.isArray(p) && p.length === 1 && Array.isArray(p[0])) {
       console.log('[ToolManager] Unwrapping nested within_paths array');
       p = p[0];
     }
-    
+
     p = p.filter(x => typeof x === "string");
     return Array.from(new Set(p));
   }
-  
-  isBareWord(query) {
-    return /^[a-z0-9\s]+$/i.test(query);
-  }
-  
-  toWordPattern(query) {
-    const escaped = query.trim().replace(/\s+/g, '\\s+');
-    return `\\b${escaped}(?:'s)?\\b`;
-  }
-  
+
   initializeTools() {
     return {
       list_files: {
@@ -929,27 +920,27 @@ class ToolManager {
           const results = [];
           const truncated = [];
           let totalChars = 0;
-          
+
           for (const path of args.paths) {
             if (totalChars >= maxChars) {
               truncated.push(path);
               continue;
             }
-            
+
             const file = this.plugin.app.vault.getAbstractFileByPath(path);
             if (file) {
               try {
                 const content = await this.plugin.app.vault.read(file);
                 const remaining = maxChars - totalChars;
-                
+
                 if (content.length <= remaining) {
                   results.push({ path, text: content });
                   totalChars += content.length;
                 } else {
-                  results.push({ 
-                    path, 
+                  results.push({
+                    path,
                     text: content.substring(0, remaining),
-                    truncated: true 
+                    truncated: true
                   });
                   totalChars += remaining;
                   truncated.push(path);
@@ -959,7 +950,7 @@ class ToolManager {
               }
             }
           }
-          
+
           return {
             items: results,
             truncated_paths: truncated,
@@ -968,182 +959,7 @@ class ToolManager {
           };
         }
       },
-      
-      find_in_files: {
-        schema: {
-          type: 'function',
-          name: 'find_in_files',
-          description: 'Multi-pattern body text search with auto date extraction.',
-          parameters: {
-            type: 'object',
-            properties: {
-              within_paths: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'File paths to search within (required)'
-              },
-              patterns: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Multiple regex patterns to search'
-              },
-              query: {
-                type: 'string',
-                description: 'Single query (alternative to patterns)'
-              },
-              case_insensitive: {
-                type: 'boolean',
-                description: 'Case-insensitive search. Default: true'
-              },
-              max_matches: {
-                type: 'number',
-                description: 'Maximum matches. Default: 10'
-              },
-              context_chars: {
-                type: 'number',
-                description: 'Context window size. Default: 600'
-              },
-              stop_on_first: {
-                type: 'boolean',
-                description: 'Stop after first confident match. Default: true'
-              },
-              extract_dates_nearby: {
-                type: 'boolean',
-                description: 'Auto-extract dates near matches. Default: true'
-              }
-            },
-            required: ['within_paths']
-          }
-        },
-        execute: async (args) => {
-          const case_insensitive = args.case_insensitive !== false;
-          const max_matches = Math.min(args.max_matches || 10, 100);
-          const context_chars = Math.min(Math.max(args.context_chars || 600, 200), 2000);
-          const stop_on_first = args.stop_on_first !== false;
-          const extract_dates = args.extract_dates_nearby !== false;
-          
-          let within_paths = this.normalizePaths(args.within_paths);
-          
-          if (within_paths.length === 0) {
-            return {
-              error: 'within_paths_required: cannot search with empty path list',
-              matches: []
-            };
-          }
-          
-          console.log(`[find_in_files] Searching ${within_paths.length} files`);
-          
-          let patterns = args.patterns || [];
-          if (patterns.length === 0 && args.query) {
-            if (this.isBareWord(args.query)) {
-              patterns = [this.toWordPattern(args.query)];
-              console.log(`[find_in_files] Auto-wrapped bare word: ${patterns[0]}`);
-            } else {
-              patterns = [args.query];
-            }
-          }
-          
-          if (patterns.length === 0) {
-            return { error: 'Must provide either patterns or query', matches: [] };
-          }
-          
-          const matches = [];
-          const flags = case_insensitive ? 'gi' : 'g';
-          
-          try {
-            const regexes = patterns.map(p => new RegExp(p, flags));
-            const dateRx = /\b(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\d{4}[-/.]\d{1,2}[-/.]\d{1,2})\b/gi;
-            
-            for (const path of within_paths) {
-              if (matches.length >= max_matches) break;
-              
-              const file = this.plugin.app.vault.getAbstractFileByPath(path);
-              if (!file) continue;
-              
-              try {
-                const txt = await this.plugin.app.vault.read(file);
-                
-                for (const rx of regexes) rx.lastIndex = 0;
-                dateRx.lastIndex = 0;
-                
-                for (const rx of regexes) {
-                  let match;
-                  let guard = 0;
-                  
-                  while ((match = rx.exec(txt)) && matches.length < max_matches && guard < 1000) {
-                    const matchStart = match.index;
-                    const matchEnd = match.index + match[0].length;
-                    
-                    const contextStart = Math.max(0, matchStart - Math.floor(context_chars / 2));
-                    const contextEnd = Math.min(txt.length, matchEnd + Math.floor(context_chars / 2));
-                    const snippet = txt.slice(contextStart, contextEnd);
-                    
-                    let dates = [];
-                    if (extract_dates) {
-                      const dateStart = Math.max(0, matchStart - 400);
-                      const dateEnd = Math.min(txt.length, matchEnd + 400);
-                      const dateWindow = txt.slice(dateStart, dateEnd);
-                      dateRx.lastIndex = 0;
-                      dates = Array.from(dateWindow.matchAll(dateRx)).map(d => d[0]);
-                    }
-                    
-                    matches.push({
-                      path: path,
-                      start: contextStart,
-                      end: contextEnd,
-                      match_start: matchStart,
-                      match_len: match[0].length,
-                      snippet: snippet,
-                      dates: dates
-                    });
-                    
-                    if (stop_on_first && dates.length > 0) {
-                      console.log(`[find_in_files] Found confident match with date, stopping`);
-                      const totalChars = snippet.length;
-                      return {
-                        matches: matches,
-                        total: matches.length,
-                        stopped_early: true,
-                        estimated_tokens_1k: Math.ceil(totalChars / 4 / 1000) * 1000
-                      };
-                    }
-                    
-                    guard++;
-                    
-                    if (rx.lastIndex === match.index) {
-                      rx.lastIndex++;
-                    }
-                    
-                    if (matches.length >= max_matches) break;
-                  }
-                  
-                  if (matches.length >= max_matches) break;
-                }
-              } catch (error) {
-                console.error(`[find_in_files] Error reading ${path}:`, error);
-              }
-            }
-          } catch (error) {
-            return {
-              error: `Invalid regex pattern: ${error.message}`,
-              matches: []
-            };
-          }
-          
-          const totalChars = matches.reduce((sum, m) => sum + (m.snippet?.length || 0), 0);
-          const needsNarrowing = matches.length >= max_matches;
-          
-          console.log(`[find_in_files] Found ${matches.length} matches`);
-          
-          return {
-            matches: matches,
-            total: matches.length,
-            needs_narrowing: needsNarrowing,
-            estimated_tokens_1k: Math.ceil(totalChars / 4 / 1000) * 1000
-          };
-        }
-      },
-      
+
       retrieve_relevant_chunks: {
         schema: {
           type: 'function',
@@ -1268,19 +1084,15 @@ class ToolManager {
   
   isZeroResult(toolName, result) {
     if (!result) return true;
-    
-    if (toolName === 'search_lexical' || toolName === 'find_in_files') {
-      return !result.hits?.length && !result.matches?.length;
-    }
-    
+
     if (toolName === 'list_files') {
       return result.count === 0 || result.items?.length === 0;
     }
-    
+
     if (toolName === 'retrieve_relevant_chunks') {
       return !result.hits?.length;
     }
-    
+
     return false;
   }
   
