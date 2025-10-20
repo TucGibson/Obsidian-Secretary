@@ -1399,6 +1399,14 @@ class AgentLoop {
 
     try {
       const systemMessages = this.plugin.contextBuilder.buildSystemMessages();
+
+      // Log message order and sizes for cache debugging
+      console.log('[Cache Debug] Message order:');
+      systemMessages.forEach((msg, i) => {
+        const preview = msg.content.substring(0, 50).replace(/\n/g, ' ');
+        console.log(`  ${i}: ${msg.role} (${msg.content.length} chars) - "${preview}..."`);
+      });
+
       const firstTurnInput = [
         ...systemMessages,
         { role: 'user', content: this.userMessage }
@@ -1621,9 +1629,10 @@ class APIHandler {
     
     const data = response.json;
     this.plugin.previousResponseId = data.id;
-    
+
     console.log('[API] Response received');
-    
+    console.log('[API] Usage stats:', JSON.stringify(data.usage, null, 2));
+
     return data;
   }
   
