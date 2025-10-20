@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.9 - Accurate Total Usage Stats
+// VERSION: 2.0.10 - Enhanced Index Debugging
 // LAST UPDATED: 2025-10-20
-// CHANGES: Sum usage across all API calls instead of showing only last call
+// CHANGES: Add detailed logging to diagnose why full re-indexing occurs
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -537,16 +537,20 @@ class RAGSystem {
   async loadEmbeddings() {
     try {
       const embeddingsPath = `${this.plugin.manifest.dir}/embeddings.json`;
+      console.log(`[RAG] Looking for embeddings at: ${embeddingsPath}`);
 
       // Check if file exists
       const exists = await this.plugin.app.vault.adapter.exists(embeddingsPath);
       if (!exists) {
-        console.log('[RAG] No saved embeddings found');
+        console.log('[RAG] No saved embeddings found - will need to index vault');
         return false;
       }
 
+      console.log('[RAG] Embeddings file exists, loading...');
       const json = await this.plugin.app.vault.adapter.read(embeddingsPath);
       const data = JSON.parse(json);
+
+      console.log(`[RAG] Parsed embeddings data: version=${data.version}, files=${data.embeddings?.length}`);
 
       // Restore embeddings
       this.embeddings.clear();
@@ -558,10 +562,10 @@ class RAGSystem {
       }
 
       this.indexed = true;
-      console.log(`[RAG] Loaded ${this.embeddings.size} file embeddings from disk`);
+      console.log(`[RAG] ✓ Successfully loaded ${this.embeddings.size} file embeddings from disk`);
       return true;
     } catch (error) {
-      console.error('[RAG] Error loading embeddings:', error);
+      console.error('[RAG] ✗ Error loading embeddings:', error);
       return false;
     }
   }
@@ -570,8 +574,12 @@ class RAGSystem {
    * Check for files modified since last index and re-index them
    */
   async checkModifiedFiles() {
-    if (!this.indexed) return;
+    if (!this.indexed) {
+      console.log('[RAG] Skipping checkModifiedFiles - vault not indexed yet');
+      return;
+    }
 
+    console.log('[RAG] Checking for files modified since last index...');
     const files = this.plugin.app.vault.getMarkdownFiles();
     const toUpdate = [];
 
@@ -580,9 +588,13 @@ class RAGSystem {
 
       if (!indexed) {
         // New file
+        console.log(`[RAG]   New file detected: ${file.path}`);
         toUpdate.push(file);
       } else if (file.stat.mtime > indexed.indexed_at) {
         // File modified since indexing
+        const mtimeDate = new Date(file.stat.mtime).toISOString();
+        const indexedDate = new Date(indexed.indexed_at).toISOString();
+        console.log(`[RAG]   Modified: ${file.path} (mtime: ${mtimeDate}, indexed: ${indexedDate})`);
         toUpdate.push(file);
       }
     }
@@ -597,7 +609,7 @@ class RAGSystem {
     }
 
     if (toUpdate.length > 0 || toDelete.length > 0) {
-      console.log(`[RAG] Found ${toUpdate.length} new/modified files, ${toDelete.length} deleted files`);
+      console.log(`[RAG] ⚠ Found ${toUpdate.length} new/modified files, ${toDelete.length} deleted files`);
 
       // Delete removed files
       for (const path of toDelete) {
@@ -610,6 +622,8 @@ class RAGSystem {
       }
 
       await this.saveEmbeddings();
+    } else {
+      console.log('[RAG] ✓ No changes detected - all files up to date');
     }
   }
 
@@ -1780,7 +1794,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.9'
+      text: 'v2.0.10'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
