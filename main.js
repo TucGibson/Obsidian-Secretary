@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.10 - Enhanced Index Debugging
+// VERSION: 2.0.11 - Fix: Prevent spurious re-indexing on reload
 // LAST UPDATED: 2025-10-20
-// CHANGES: Add detailed logging to diagnose why full re-indexing occurs
+// CHANGES: File watcher now checks timestamps before queueing updates
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -649,21 +649,29 @@ class RAGSystem {
       return;
     }
 
-    console.log('[RAG] Starting file watcher');
+    console.log(`[RAG] Starting file watcher (${this.embeddings.size} files already indexed)`);
 
     // Handle file creation
     const onCreate = this.plugin.app.vault.on('create', (file) => {
       if (file.extension === 'md') {
-        console.log(`[RAG] File created: ${file.path}`);
-        this.queueFileUpdate(file.path);
+        // Only queue if we don't already have embeddings for this file
+        const indexed = this.embeddings.get(file.path);
+        if (!indexed) {
+          console.log(`[RAG] New file created: ${file.path}`);
+          this.queueFileUpdate(file.path);
+        }
       }
     });
 
     // Handle file modification
     const onModify = this.plugin.app.vault.on('modify', (file) => {
       if (file.extension === 'md') {
-        console.log(`[RAG] File modified: ${file.path}`);
-        this.queueFileUpdate(file.path);
+        // Check if file actually needs re-indexing
+        const indexed = this.embeddings.get(file.path);
+        if (!indexed || file.stat.mtime > indexed.indexed_at) {
+          console.log(`[RAG] File modified: ${file.path}`);
+          this.queueFileUpdate(file.path);
+        }
       }
     });
 
@@ -1794,7 +1802,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.10'
+      text: 'v2.0.11'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
