@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.6 - Prompt Caching & Stats Improvements
+// VERSION: 2.0.6 - Stats Display Improvements
 // LAST UPDATED: 2025-10-20
-// CHANGES: Add prompt caching for static pillars, accurate token accounting, timing stats, list format
+// CHANGES: Add timing stats, accurate token accounting, list format display
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -60,18 +60,15 @@ class ContextBuilder {
     return [
       {
         role: 'system',
-        content: this.buildPillar1(),
-        cache_control: { type: "ephemeral" }  // Cache pillar1 instructions
+        content: this.buildPillar1()
       },
       {
         role: 'system',
-        content: this.buildPillar5(),
-        cache_control: { type: "ephemeral" }  // Cache pillar5 instructions
+        content: this.buildPillar5()
       },
       {
         role: 'system',
         content: this.buildPillar2()
-        // Don't cache pillar2 - it has dynamic vault stats
       }
     ];
   }
