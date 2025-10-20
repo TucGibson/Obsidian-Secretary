@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.5 - Live Indexing
+// VERSION: 2.0.6 - Prompt Caching & Stats Improvements
 // LAST UPDATED: 2025-10-20
-// CHANGES: Auto-index new/modified files, check for changes on startup
+// CHANGES: Add prompt caching for static pillars, accurate token accounting, timing stats, list format
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -58,17 +58,20 @@ class ContextBuilder {
   
   buildSystemMessages() {
     return [
-      { 
-        role: 'system', 
-        content: this.buildPillar1() 
+      {
+        role: 'system',
+        content: this.buildPillar1(),
+        cache_control: { type: "ephemeral" }  // Cache pillar1 instructions
       },
-      { 
-        role: 'system', 
-        content: this.buildPillar5() 
+      {
+        role: 'system',
+        content: this.buildPillar5(),
+        cache_control: { type: "ephemeral" }  // Cache pillar5 instructions
       },
-      { 
-        role: 'system', 
-        content: this.buildPillar2() 
+      {
+        role: 'system',
+        content: this.buildPillar2()
+        // Don't cache pillar2 - it has dynamic vault stats
       }
     ];
   }
@@ -1395,41 +1398,44 @@ class AgentLoop {
   
   async run(callbacks = {}) {
     this.callbacks = callbacks;
-    
+    const startTime = Date.now();
+
     try {
       const systemMessages = this.plugin.contextBuilder.buildSystemMessages();
       const firstTurnInput = [
         ...systemMessages,
         { role: 'user', content: this.userMessage }
       ];
-      
+
       let response = await this.step(firstTurnInput);
-      
+
       if (this.isDone) {
         return {
           success: true,
           finalOutput: this.finalOutput,
           iterations: this.iteration,
-          usage: response.usage
+          usage: response.usage,
+          elapsedMs: Date.now() - startTime
         };
       }
-      
+
       while (this.iteration < this.maxIterations && !this.isDone) {
         this.iteration++;
         console.log(`\n=== AGENT LOOP ITERATION ${this.iteration} ===`);
-        
+
         const parsed = this.plugin.apiHandler.parseResponse(response);
-        
+
         if (parsed.toolCalls && parsed.toolCalls.length > 0) {
           const outputs = await this.executeToolCalls(parsed.toolCalls);
           response = await this.plugin.apiHandler.flushToolOutputs(outputs);
-          
+
           if (this.isDone) {
             return {
               success: true,
               finalOutput: this.finalOutput,
               iterations: this.iteration,
-              usage: response.usage
+              usage: response.usage,
+              elapsedMs: Date.now() - startTime
             };
           }
         } else if (parsed.text) {
@@ -1440,21 +1446,23 @@ class AgentLoop {
             success: true,
             finalOutput: this.finalOutput,
             iterations: this.iteration,
-            usage: response.usage
+            usage: response.usage,
+            elapsedMs: Date.now() - startTime
           };
         } else {
           throw new Error('Model stopped without calling output_to_user or providing text');
         }
       }
-      
+
       throw new Error(`Agent reached maximum iterations (${this.maxIterations})`);
-      
+
     } catch (error) {
       console.error('[AgentLoop] Error:', error);
       return {
         success: false,
         error: error.message,
-        iterations: this.iteration
+        iterations: this.iteration,
+        elapsedMs: Date.now() - startTime
       };
     }
   }
@@ -1911,9 +1919,9 @@ class ChatView extends ItemView {
       
       if (result.success) {
         this.addMessage('assistant', result.finalOutput);
-        
+
         if (result.usage) {
-          this.addUsageStats(result.usage, result.iterations);
+          this.addUsageStats(result.usage, result.iterations, result.elapsedMs);
         }
       } else {
         this.addMessage('error', result.error || 'Agent failed');
@@ -1970,27 +1978,37 @@ class ChatView extends ItemView {
     return msgEl;
   }
   
-  addUsageStats(usage, iterations) {
-    const cached = usage.input_tokens_details?.cached_tokens || 0;
-    const input = usage.input_tokens || 0;
-    const output = usage.output_tokens || 0;
-    
+  addUsageStats(usage, iterations, elapsedMs = 0) {
+    // Token breakdown
+    const cachedTokens = usage.input_tokens_details?.cached_tokens || 0;
+    const totalInput = usage.input_tokens || 0;
+    const freshTokens = totalInput - cachedTokens;
+    const outputTokens = usage.output_tokens || 0;
+
+    // Pricing (cached tokens get 90% discount)
     const pricing = PRICING['gpt-5-nano'];
-    
-    const costCached = (cached / 1_000_000) * pricing.cache_in;
-    const costInput = (input / 1_000_000) * pricing.input;
-    const costOutput = (output / 1_000_000) * pricing.output;
-    const costTotal = costCached + costInput + costOutput;
-    
-    const statsText = `--- Stats ---
-Iterations: ${iterations}
-Cached: ${cached.toLocaleString()} ($${costCached.toFixed(6)})
-Input:  ${input.toLocaleString()} ($${costInput.toFixed(6)})
-Output: ${output.toLocaleString()} ($${costOutput.toFixed(6)})
-Total:  $${costTotal.toFixed(6)}`;
-    
+    const costCached = (cachedTokens / 1_000_000) * pricing.input * 0.1;
+    const costFresh = (freshTokens / 1_000_000) * pricing.input;
+    const costOutput = (outputTokens / 1_000_000) * pricing.output;
+    const costTotal = costCached + costFresh + costOutput;
+
+    // Timing
+    const elapsedSec = (elapsedMs / 1000).toFixed(2);
+
+    // Format as list
+    const statsLines = [
+      '--- Stats ---',
+      `• Iterations: ${iterations}`,
+      `• Time: ${elapsedSec}s`,
+      `• Tokens:`,
+      `  - Cached input: ${cachedTokens.toLocaleString()} ($${costCached.toFixed(6)})`,
+      `  - Fresh input: ${freshTokens.toLocaleString()} ($${costFresh.toFixed(6)})`,
+      `  - Output: ${outputTokens.toLocaleString()} ($${costOutput.toFixed(6)})`,
+      `• Total Cost: $${costTotal.toFixed(6)}`
+    ];
+
     const statsEl = this.chatEl.createDiv({ cls: 'chat-message stats' });
-    statsEl.textContent = statsText;
+    statsEl.textContent = statsLines.join('\n');
     this.scrollToBottom();
   }
   

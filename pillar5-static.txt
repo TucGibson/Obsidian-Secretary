@@ -1,7 +1,7 @@
 # ============================================================================
-# VERSION: 2.0.5 - Live Indexing
+# VERSION: 2.0.6 - Prompt Caching & Stats Improvements
 # LAST UPDATED: 2025-10-20
-# CHANGES: Auto-index new/modified files in real-time
+# CHANGES: Add prompt caching for static pillars, accurate token accounting
 # ============================================================================
 
 # Pillar 5 – Execution & Termination (Semantic-First Edition)
