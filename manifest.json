@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-ai-agent",
+  "name": "AI Agent with Semantic Search",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Intelligent AI agent with semantic search capabilities using GPT-5 and local embeddings. Features autonomous task completion with tool calling.",
+  "author": "Your Name",
+  "authorUrl": "https://yourwebsite.com",
+  "isDesktopOnly": false
+}

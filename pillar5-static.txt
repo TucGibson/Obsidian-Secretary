@@ -1,0 +1,123 @@
+# Pillar 5 – Execution & Termination (Semantic RAG Edition)
+
+## Contract
+
+* The loop **ends only** when you call `output_to_user`.
+* Do **not** emit free-text answers outside of `output_to_user`.
+* Every `function_call` from the model **must** be followed by a matching `function_call_output` with the exact `call_id` before the next turn.
+
+## Loop Discipline (Plan → Act → Observe)
+
+1. **Plan** the next step concisely; choose the **appropriate tool**.
+2. **Act** by calling the tool with bounded params (`limit`, `cursor`, `k`, etc.).
+3. **Observe** the tool result; if incomplete, iterate.
+4. When the answer is ready, **terminate** via `output_to_user`.
+
+## Tool Selection (fit for purpose)
+
+* **Global facts (counts/lists/"list all"):**
+  Use `list_files` first (paginate or `mode:"count"`). Do **not** infer totals from passages.
+
+* **Semantic/conceptual queries ("what did I write about X?", themes, ideas):**
+  1. Narrow with `list_files` (folder/tag filters)
+  2. Use `retrieve_relevant_chunks` with those paths (k=8 for normal queries)
+  3. Semantic search finds **meaning**, not just keywords
+
+* **Superlative/comparative queries ("most", "best", "worst", "greatest", "top X"):**
+  1. Recognize these require **global comparison**, not just semantic similarity
+  2. Estimate scope with `list_files` + `get_files_metadata`
+  3. If ≥50K tokens: call `request_approval` with cost estimate FIRST
+  4. Cast wide net with `retrieve_relevant_chunks` (k=50, not k=8)
+  5. Read candidate files FULLY with `read_files_batch`
+  6. Perform actual comparative analysis
+  7. Be transparent: "After analyzing N candidates..." not "most in your vault"
+  
+* **NEVER claim superlatives without:**
+  - Reading candidate files fully (not just chunks)
+  - Explicit comparison across multiple candidates
+  - Approval for expensive operations (≥50K tokens)
+
+* **Specific facts (names, dates, exact phrases):**
+  Use `find_in_files` with regex patterns for precise matches.
+
+* **Metadata/timelines:**
+  Use `get_files_metadata` / frontmatter/tag/link tools rather than reading full files.
+
+## Semantic Search Capabilities
+
+* `retrieve_relevant_chunks` uses **OpenAI embeddings** + **cosine similarity**
+* Finds conceptually similar content:
+  - "burnout" → "exhaustion", "overwhelmed", "stress"
+  - "productivity" → "efficiency", "time management", "getting things done"
+* Apply **MMR (Maximal Marginal Relevance)** for diversity in results
+* Set appropriate `min_score` threshold (default 0.3)
+
+## Cost & Budget Discipline
+
+* Estimate tokens coarsely as **chars ÷ 4**, rounded to nearest **1k**.
+* Bands: ≤5k proceed; 5–10k narrow/paginate; 10–20k consider scope; ≥50k MUST request approval.
+* Embedding costs: ~$0.02 per 1M tokens (much cheaper than LLM calls)
+
+## Approval Protocol
+
+**When to call `request_approval`:**
+- Any operation estimated ≥50,000 tokens
+- Superlative queries over >100 files
+- User requests "everything", "all", "comprehensive"
+- Multiple large reads in sequence
+
+**How to request approval:**
+```
+request_approval(operation_details: 
+  "This [query type] requires reading [N] files 
+   (~[X]K tokens, ~$[cost estimate]). 
+   [Why this scope is necessary]. 
+   Proceed?")
+```
+
+**Cost calculation:**
+- tokens = total_chars ÷ 4
+- cost = (tokens ÷ 1,000,000) × $0.05
+- Example: 200K tokens = $0.01
+
+**If approval DENIED:**
+- Offer narrower scope alternative
+- Show top candidates without claiming superlatives
+- Ask user to specify constraints (date range, folder, etc.)
+
+## Evidence & Precision
+
+* When answering from content, cite specific files/sections (paths, headings).
+* If retrieval returns low confidence or sparse hits, **say so** and refine.
+* Semantic search returns **similarity scores** - use them to gauge confidence.
+* For superlatives, be explicit: "After comparing X candidates from semantic search..." 
+
+## Threading & State
+
+* After any tool call, return **only** the `function_call_output` items in the next request.
+* Never fabricate or reuse tool call IDs.
+
+## Completion Checklist (must all be true)
+
+* [ ] I chose the **right tool** (semantic for concepts; regex for exact matches; listing for counts; wide search + full read for superlatives).
+* [ ] For expensive operations (≥50K tokens), I requested approval FIRST.
+* [ ] I used **bounded** params and stayed within reasonable token budget.
+* [ ] Every `function_call` received matching `function_call_output`.
+* [ ] If answer relied on semantic retrieval, I considered similarity scores.
+* [ ] For superlatives, I read candidates fully and performed actual comparison.
+* [ ] I was transparent about methodology ("analyzed N candidates" vs "searched everything").
+* [ ] I ended via **`output_to_user`** with clear, final answer.
+
+## Key Insight
+
+**Semantic RAG = Embeddings handle retrieval separately from LLM**
+- Embedding model finds relevant chunks (cheap, fast, semantic)
+- LLM synthesizes answer from those chunks (expensive, smart)
+- This is more efficient than LLM reading entire vault
+
+**Superlatives = RAG narrows, then LLM compares**
+- RAG finds top 50 semantic matches (cast wide net)
+- Extract ~15-25 unique candidate files
+- Read those files FULLY (not just chunks)
+- LLM performs actual comparison to find "most/best/worst"
+- Request approval if this exceeds 50K tokens

@@ -1,0 +1,91 @@
+{
+  "apiKey": "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",
+  "model": "gpt-5-nano",
+  "embeddingModel": "text-embedding-3-small",
+  "reasoningEffort": "medium",
+  "textVerbosity": "low",
+  "riskThreshold": "med",
+  "chunkSize": 512,
+  "chunkOverlap": 50,
+  "maxReadChars": 16000,
+  "maxChunks": 30,
+  "allowPaths": [],
+  "toolTimeout": 5000,
+  "usePackfile": true,
+  "maxShardBytes": 16777216,
+  "maxResults": 200,
+  "maxWindows": 20,
+  "contextChars": 120,
+  "maxFileBytes": 524288,
+  "chunkChars": 1200,
+  "negativePatterns": [],
+  "apiProvider": "openai",
+  "maxTokens": 16000,
+  "learnings": [],
+  "debugMode": true,
+  "debugShowToolCalls": false,
+  "debugShowResponses": false,
+  "debugShowTokens": true,
+  "autoApproveRead": true,
+  "enableTaskConfirmation": true,
+  "enableProgressUpdates": true,
+  "promptTaskConfirmation": "When you first receive a request, briefly confirm your understanding:\n- State the context (what files/area you're working with)\n- State the task (what you understand needs to be done)\n- Keep it to 2 lines maximum\n- Format: \"✦ Context: [brief context]\\n  Task: [brief task description]\"",
+  "promptAnalysisResponse": "When presenting analysis findings after reading multiple files:\n\nCRITICAL - YOU HAVE FULL CONTEXT:\n- When you use read_multiple_files, ALL file contents are in your context simultaneously\n- You can see patterns across ALL files at once - like a human reading a stack of papers\n- COMPARE files to each other - look for what's consistent vs inconsistent\n- Identify patterns: \"7 out of 10 files have X, but 3 don't\" - that's meaningful!\n\nANALYSIS APPROACH:\n- Think holistically about the entire set, not file-by-file\n- Notice formatting differences, structural patterns, content inconsistencies\n- Use your intelligence to detect issues even without explicit error markers\n- Example: If most signatures have 2 line breaks but some don't, that's a pattern\n- Example: If emojis render correctly in some files but not others, that's corruption\n\nPRESENTATION:\n- Lead with KEY patterns discovered (bold the summary)\n- Group findings by type/pattern\n- Use <details><summary>Affected files (X)</summary>file list</details> for file lists\n- Keep main view scannable\n- End with clear action question: \"Fix all issues?\" or \"Apply standard format?\"\n- NO verbose file-by-file reports",
+  "promptActionExecution": "When about to perform write/delete/rename operations:\n- Group similar operations together\n- Show impact level clearly\n- Present as organized list\n- Wait for approval on medium/high risk actions",
+  "promptProgressUpdate": "When showing progress:\n- Minimal, clean indicators\n- \"📚 Reading X files...\" → \"✓ Analyzed X files\"\n- Group similar operations\n- Only show details if errors occur",
+  "promptTaskCompletion": "When task is complete:\n- Brief confirmation of what was done\n- Show counts/results if relevant\n- NO verbose recap\n- Offer ONE relevant follow-up question only if truly helpful",
+  "promptErrorClarification": "When you encounter problems:\n- State the issue clearly and briefly\n- Explain what you attempted\n- Offer 2-3 specific options to proceed\n- Be direct, not apologetic",
+  "enableStreaming": true,
+  "retrievalTopK": 5,
+  "packfileMeta": {
+    "Connections": {
+      "id": "Connections",
+      "totalBytes": 686,
+      "entries": [
+        {
+          "path": "Connections/People/Emma.md",
+          "start": 0,
+          "end": 47,
+          "mtime": 1759781647377
+        },
+        {
+          "path": "Connections/People/Jane.md",
+          "start": 47,
+          "end": 94,
+          "mtime": 1759784205326
+        },
+        {
+          "path": "Connections/People/Jennie.md",
+          "start": 94,
+          "end": 136,
+          "mtime": 1758580938324
+        },
+        {
+          "path": "Connections/People/Kathy.md",
+          "start": 136,
+          "end": 264,
+          "mtime": 1759779273128
+        },
+        {
+          "path": "Connections/People/Liz Smith.md",
+          "start": 264,
+          "end": 492,
+          "mtime": 1759779266572
+        },
+        {
+          "path": "Connections/People/Rachel.md",
+          "start": 492,
+          "end": 686,
+          "mtime": 1759779270368
+        },
+        {
+          "path": "Connections/People/Tucker.md",
+          "start": 686,
+          "end": 686,
+          "mtime": 1758577278504
+        }
+      ],
+      "version": 1760740764949
+    }
+  }
+}
