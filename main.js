@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.7 - Cache Debugging
+// VERSION: 2.0.8 - Speed Optimizations
 // LAST UPDATED: 2025-10-20
-// CHANGES: Add cache debugging logs to diagnose prompt caching behavior
+// CHANGES: Enable parallel tool calls, streamline superlative query instructions
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1600,6 +1600,7 @@ class APIHandler {
       model: this.plugin.settings.model,
       input: inputItems,
       tools: tools,
+      parallel_tool_calls: true,
       reasoning: { effort: this.plugin.settings.reasoningEffort },
       text: { verbosity: this.plugin.settings.textVerbosity },
       store: true,
@@ -1760,7 +1761,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.7'
+      text: 'v2.0.8'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
