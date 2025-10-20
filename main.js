@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.3 - Better Indexing Progress
+// VERSION: 2.0.4 - Persistent Embeddings
 // LAST UPDATED: 2025-10-20
-// CHANGES: Added file name, percentage, and better visual feedback during indexing
+// CHANGES: Save embeddings to disk, auto-load on startup - no more re-indexing!
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -488,16 +488,79 @@ class RAGSystem {
       
       this.indexed = successful > 0;
       console.log(`[RAG] Indexing complete: ${successful} succeeded, ${failed} failed, ${this.embeddings.size} files indexed`);
-      
+
       if (failed > 0) {
         console.warn(`[RAG] ${failed} files failed to index`);
       }
-      
+
+      // Save embeddings to disk after successful indexing
+      if (this.indexed) {
+        await this.saveEmbeddings();
+      }
+
     } finally {
       this.isIndexing = false;
     }
   }
-  
+
+  /**
+   * Save embeddings to disk
+   */
+  async saveEmbeddings() {
+    try {
+      const embeddingsPath = `${this.plugin.manifest.dir}/embeddings.json`;
+      const data = {
+        version: 1,
+        indexed_at: Date.now(),
+        embeddings: Array.from(this.embeddings.entries()).map(([path, data]) => ({
+          path,
+          chunks: data.chunks,
+          indexed_at: data.indexed_at
+        }))
+      };
+
+      await this.plugin.app.vault.adapter.write(embeddingsPath, JSON.stringify(data));
+      console.log(`[RAG] Saved ${this.embeddings.size} file embeddings to disk`);
+    } catch (error) {
+      console.error('[RAG] Error saving embeddings:', error);
+    }
+  }
+
+  /**
+   * Load embeddings from disk
+   */
+  async loadEmbeddings() {
+    try {
+      const embeddingsPath = `${this.plugin.manifest.dir}/embeddings.json`;
+
+      // Check if file exists
+      const exists = await this.plugin.app.vault.adapter.exists(embeddingsPath);
+      if (!exists) {
+        console.log('[RAG] No saved embeddings found');
+        return false;
+      }
+
+      const json = await this.plugin.app.vault.adapter.read(embeddingsPath);
+      const data = JSON.parse(json);
+
+      // Restore embeddings
+      this.embeddings.clear();
+      for (const item of data.embeddings) {
+        this.embeddings.set(item.path, {
+          chunks: item.chunks,
+          indexed_at: item.indexed_at
+        });
+      }
+
+      this.indexed = true;
+      console.log(`[RAG] Loaded ${this.embeddings.size} file embeddings from disk`);
+      return true;
+    } catch (error) {
+      console.error('[RAG] Error loading embeddings:', error);
+      return false;
+    }
+  }
+
   /**
    * Apply Maximal Marginal Relevance for diversity
    */
@@ -1511,7 +1574,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.3'
+      text: 'v2.0.4'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -1543,7 +1606,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
     
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.3\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.4\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -1898,7 +1961,10 @@ class AIAgentPlugin extends Plugin {
     this.contextBuilder = new ContextBuilder(this);
     this.toolManager = new ToolManager(this);
     this.apiHandler = new APIHandler(this);
-    
+
+    // Load saved embeddings from disk
+    await this.ragSystem.loadEmbeddings();
+
     this.registerView(VIEW_TYPE, (leaf) => new ChatView(leaf, this));
     
     this.addRibbonIcon('bot', 'Open AI Agent', () => {

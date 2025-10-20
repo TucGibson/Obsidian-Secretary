@@ -1,7 +1,7 @@
 # ============================================================================
-# VERSION: 2.0.3 - Better Indexing Progress
+# VERSION: 2.0.4 - Persistent Embeddings
 # LAST UPDATED: 2025-10-20
-# CHANGES: Improved progress feedback during indexing
+# CHANGES: Embeddings saved to disk, no re-indexing needed
 # ============================================================================
 
 # Pillar 1 – Tool Use (Semantic-First Agent)
