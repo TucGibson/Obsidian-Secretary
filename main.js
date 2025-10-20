@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.4 - Persistent Embeddings
+// VERSION: 2.0.5 - Live Indexing
 // LAST UPDATED: 2025-10-20
-// CHANGES: Save embeddings to disk, auto-load on startup - no more re-indexing!
+// CHANGES: Auto-index new/modified files, check for changes on startup
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -26,7 +26,9 @@ const DEFAULT_SETTINGS = {
   textVerbosity: 'medium',
   riskThreshold: 50,
   chunkSize: 800,
-  chunkOverlap: 150
+  chunkOverlap: 150,
+  autoIndexing: true,
+  autoIndexDelay: 30000 // 30 seconds
 };
 
 // Pricing per million tokens
@@ -173,6 +175,9 @@ class RAGSystem {
     this.embeddings = new Map(); // path -> {chunks: [{text, embedding, start, end}]}
     this.isIndexing = false;
     this.indexed = false;
+    this.pendingUpdates = new Set(); // Files waiting to be indexed
+    this.debounceTimer = null;
+    this.fileEventHandlers = [];
   }
   
   getCachedMetadata(file) {
@@ -558,6 +563,173 @@ class RAGSystem {
     } catch (error) {
       console.error('[RAG] Error loading embeddings:', error);
       return false;
+    }
+  }
+
+  /**
+   * Check for files modified since last index and re-index them
+   */
+  async checkModifiedFiles() {
+    if (!this.indexed) return;
+
+    const files = this.plugin.app.vault.getMarkdownFiles();
+    const toUpdate = [];
+
+    for (const file of files) {
+      const indexed = this.embeddings.get(file.path);
+
+      if (!indexed) {
+        // New file
+        toUpdate.push(file);
+      } else if (file.stat.mtime > indexed.indexed_at) {
+        // File modified since indexing
+        toUpdate.push(file);
+      }
+    }
+
+    // Check for deleted files
+    const existingPaths = new Set(files.map(f => f.path));
+    const toDelete = [];
+    for (const path of this.embeddings.keys()) {
+      if (!existingPaths.has(path)) {
+        toDelete.push(path);
+      }
+    }
+
+    if (toUpdate.length > 0 || toDelete.length > 0) {
+      console.log(`[RAG] Found ${toUpdate.length} new/modified files, ${toDelete.length} deleted files`);
+
+      // Delete removed files
+      for (const path of toDelete) {
+        this.embeddings.delete(path);
+      }
+
+      // Index new/modified files
+      if (toUpdate.length > 0) {
+        await this.indexFiles(toUpdate);
+      }
+
+      await this.saveEmbeddings();
+    }
+  }
+
+  /**
+   * Index specific files (incremental)
+   */
+  async indexFiles(files) {
+    for (const file of files) {
+      try {
+        await this.indexFile(file);
+      } catch (error) {
+        console.error(`[RAG] Error indexing ${file.path}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Start watching for file changes
+   */
+  startFileWatcher() {
+    if (!this.plugin.settings.autoIndexing) {
+      console.log('[RAG] Auto-indexing disabled');
+      return;
+    }
+
+    console.log('[RAG] Starting file watcher');
+
+    // Handle file creation
+    const onCreate = this.plugin.app.vault.on('create', (file) => {
+      if (file.extension === 'md') {
+        console.log(`[RAG] File created: ${file.path}`);
+        this.queueFileUpdate(file.path);
+      }
+    });
+
+    // Handle file modification
+    const onModify = this.plugin.app.vault.on('modify', (file) => {
+      if (file.extension === 'md') {
+        console.log(`[RAG] File modified: ${file.path}`);
+        this.queueFileUpdate(file.path);
+      }
+    });
+
+    // Handle file deletion
+    const onDelete = this.plugin.app.vault.on('delete', (file) => {
+      if (file.extension === 'md') {
+        console.log(`[RAG] File deleted: ${file.path}`);
+        this.embeddings.delete(file.path);
+        this.saveEmbeddings();
+      }
+    });
+
+    // Handle file rename
+    const onRename = this.plugin.app.vault.on('rename', (file, oldPath) => {
+      if (file.extension === 'md') {
+        console.log(`[RAG] File renamed: ${oldPath} -> ${file.path}`);
+        const data = this.embeddings.get(oldPath);
+        if (data) {
+          this.embeddings.delete(oldPath);
+          this.embeddings.set(file.path, data);
+          this.saveEmbeddings();
+        }
+      }
+    });
+
+    this.fileEventHandlers = [onCreate, onModify, onDelete, onRename];
+  }
+
+  /**
+   * Stop watching for file changes
+   */
+  stopFileWatcher() {
+    console.log('[RAG] Stopping file watcher');
+    for (const handler of this.fileEventHandlers) {
+      this.plugin.app.vault.offref(handler);
+    }
+    this.fileEventHandlers = [];
+
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+  }
+
+  /**
+   * Queue a file for indexing (with debouncing)
+   */
+  queueFileUpdate(path) {
+    this.pendingUpdates.add(path);
+
+    // Clear existing timer
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+
+    // Set new timer
+    this.debounceTimer = setTimeout(async () => {
+      await this.processQueuedUpdates();
+    }, this.plugin.settings.autoIndexDelay);
+  }
+
+  /**
+   * Process all queued file updates
+   */
+  async processQueuedUpdates() {
+    if (this.pendingUpdates.size === 0) return;
+
+    const paths = Array.from(this.pendingUpdates);
+    this.pendingUpdates.clear();
+
+    console.log(`[RAG] Processing ${paths.length} queued updates`);
+
+    const files = paths
+      .map(path => this.plugin.app.vault.getAbstractFileByPath(path))
+      .filter(f => f && f.extension === 'md');
+
+    if (files.length > 0) {
+      await this.indexFiles(files);
+      await this.saveEmbeddings();
+      console.log(`[RAG] Auto-indexed ${files.length} files`);
     }
   }
 
@@ -1574,7 +1746,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.4'
+      text: 'v2.0.5'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -1606,7 +1778,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
     
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.4\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.5\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -1930,7 +2102,38 @@ class AIAgentSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }
         }));
-    
+
+    new Setting(containerEl)
+      .setName('Auto-Indexing')
+      .setDesc('Automatically index new and modified files')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.autoIndexing)
+        .onChange(async (value) => {
+          this.plugin.settings.autoIndexing = value;
+          await this.plugin.saveSettings();
+
+          // Restart or stop file watcher
+          if (value) {
+            this.plugin.ragSystem.startFileWatcher();
+          } else {
+            this.plugin.ragSystem.stopFileWatcher();
+          }
+        }));
+
+    new Setting(containerEl)
+      .setName('Auto-Index Delay')
+      .setDesc('Wait time (seconds) after file modification before indexing')
+      .addText(text => text
+        .setPlaceholder('30')
+        .setValue(String(this.plugin.settings.autoIndexDelay / 1000))
+        .onChange(async (value) => {
+          const num = parseInt(value);
+          if (!isNaN(num) && num > 0) {
+            this.plugin.settings.autoIndexDelay = num * 1000;
+            await this.plugin.saveSettings();
+          }
+        }));
+
     containerEl.createEl('h3', { text: 'About' });
     
     const infoDiv = containerEl.createDiv();
@@ -1964,6 +2167,12 @@ class AIAgentPlugin extends Plugin {
 
     // Load saved embeddings from disk
     await this.ragSystem.loadEmbeddings();
+
+    // Check for files modified while Obsidian was closed
+    await this.ragSystem.checkModifiedFiles();
+
+    // Start file watcher for live indexing
+    this.ragSystem.startFileWatcher();
 
     this.registerView(VIEW_TYPE, (leaf) => new ChatView(leaf, this));
     
@@ -2060,6 +2269,7 @@ class AIAgentPlugin extends Plugin {
   
   onunload() {
     console.log('Unloading AI Agent Plugin');
+    this.ragSystem.stopFileWatcher();
   }
 }
 

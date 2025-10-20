@@ -1,7 +1,7 @@
 # ============================================================================
-# VERSION: 2.0.4 - Persistent Embeddings
+# VERSION: 2.0.5 - Live Indexing
 # LAST UPDATED: 2025-10-20
-# CHANGES: Embeddings saved to disk, no re-indexing needed
+# CHANGES: Auto-index new/modified files in real-time
 # ============================================================================
 
 # Pillar 5 – Execution & Termination (Semantic-First Edition)
