@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.13 - Debug path format mismatch
+// VERSION: 2.0.14 - FIX: Prevent vault wipe on startup
 // LAST UPDATED: 2025-10-20
-// CHANGES: Log sample paths to diagnose why all files detected as deleted
+// CHANGES: Remove checkModifiedFiles() call on startup (vault not loaded yet)
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1828,7 +1828,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.13'
+      text: 'v2.0.14'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -2261,10 +2261,8 @@ class AIAgentPlugin extends Plugin {
     // Load saved embeddings from disk
     await this.ragSystem.loadEmbeddings();
 
-    // Check for files modified while Obsidian was closed
-    await this.ragSystem.checkModifiedFiles();
-
     // Start file watcher for live indexing
+    // Note: File watcher will catch any changes via modify events - no need to check on startup
     this.ragSystem.startFileWatcher();
 
     this.registerView(VIEW_TYPE, (leaf) => new ChatView(leaf, this));
