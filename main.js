@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.1 - Improved Error Handling
+// VERSION: 2.0.2 - API Key Validation & Debugging
 // LAST UPDATED: 2025-10-20
-// CHANGES: Added better error messages for API key issues (401, 429, 403 errors)
+// CHANGES: Added API key length validation, format checking, and detailed debugging logs
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -430,16 +430,34 @@ class RAGSystem {
     if (this.isIndexing) {
       throw new Error('Indexing already in progress');
     }
-    
+
     // Validate settings
     if (!this.plugin.settings.apiKey) {
       throw new Error('OpenAI API key not set. Please add it in plugin settings.');
     }
-    
+
+    // Validate API key format
+    const apiKey = this.plugin.settings.apiKey.trim();
+    if (!apiKey.startsWith('sk-')) {
+      throw new Error('Invalid API key format. OpenAI API keys should start with "sk-". Please check your API key in Settings → AI Agent.');
+    }
+
+    // Log API key info (first 10 chars only for security)
+    console.log(`[RAG] API Key prefix: ${apiKey.substring(0, 10)}...`);
+    console.log(`[RAG] API Key suffix: ...${apiKey.substring(apiKey.length - 4)}`);
+    console.log(`[RAG] API Key length: ${apiKey.length} characters`);
+
+    // Warn if key length is unusual
+    if (apiKey.length > 200) {
+      throw new Error(`API key is unusually long (${apiKey.length} characters). It may be corrupted. Please get a fresh API key from https://platform.openai.com/api-keys and paste it carefully.`);
+    } else if (apiKey.length < 40) {
+      throw new Error(`API key is too short (${apiKey.length} characters). Please check that you copied the complete key.`);
+    }
+
     if (!this.plugin.settings.embeddingModel) {
       throw new Error('Embedding model not set. Please configure in plugin settings.');
     }
-    
+
     console.log(`[RAG] Using embedding model: ${this.plugin.settings.embeddingModel}`);
     
     this.isIndexing = true;
@@ -1493,7 +1511,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.1'
+      text: 'v2.0.2'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -1525,7 +1543,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
     
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.1\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.2\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;

@@ -1,7 +1,7 @@
 # ============================================================================
-# VERSION: 2.0.1 - Improved Error Handling
+# VERSION: 2.0.2 - API Key Validation
 # LAST UPDATED: 2025-10-20
-# CHANGES: Better error messages for API issues
+# CHANGES: Added API key validation and debugging
 # ============================================================================
 
 # Pillar 1 – Tool Use (Semantic-First Agent)
