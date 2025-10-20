@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.11 - Fix: Prevent spurious re-indexing on reload
+// VERSION: 2.0.12 - Enhanced event debugging + queue safety check
 // LAST UPDATED: 2025-10-20
-// CHANGES: File watcher now checks timestamps before queueing updates
+// CHANGES: Add detailed event logging, prevent queue processing if not indexed
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -657,8 +657,10 @@ class RAGSystem {
         // Only queue if we don't already have embeddings for this file
         const indexed = this.embeddings.get(file.path);
         if (!indexed) {
-          console.log(`[RAG] New file created: ${file.path}`);
+          console.log(`[RAG] ⚡ onCreate: ${file.path} (not indexed, queuing)`);
           this.queueFileUpdate(file.path);
+        } else {
+          console.log(`[RAG] onCreate: ${file.path} (already indexed, skipping)`);
         }
       }
     });
@@ -668,9 +670,14 @@ class RAGSystem {
       if (file.extension === 'md') {
         // Check if file actually needs re-indexing
         const indexed = this.embeddings.get(file.path);
-        if (!indexed || file.stat.mtime > indexed.indexed_at) {
-          console.log(`[RAG] File modified: ${file.path}`);
+        if (!indexed) {
+          console.log(`[RAG] ⚡ onModify: ${file.path} (not indexed, queuing)`);
           this.queueFileUpdate(file.path);
+        } else if (file.stat.mtime > indexed.indexed_at) {
+          console.log(`[RAG] ⚡ onModify: ${file.path} (modified, queuing)`);
+          this.queueFileUpdate(file.path);
+        } else {
+          console.log(`[RAG] onModify: ${file.path} (up to date, skipping)`);
         }
       }
     });
@@ -738,6 +745,13 @@ class RAGSystem {
    */
   async processQueuedUpdates() {
     if (this.pendingUpdates.size === 0) return;
+
+    // Don't process queue if vault hasn't been indexed yet
+    if (!this.indexed) {
+      console.log(`[RAG] Ignoring ${this.pendingUpdates.size} queued updates - vault not indexed yet`);
+      this.pendingUpdates.clear();
+      return;
+    }
 
     const paths = Array.from(this.pendingUpdates);
     this.pendingUpdates.clear();
@@ -1802,7 +1816,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.11'
+      text: 'v2.0.12'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
