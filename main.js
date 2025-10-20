@@ -1760,7 +1760,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.5'
+      text: 'v2.0.7'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
