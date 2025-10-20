@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.12 - Enhanced event debugging + queue safety check
+// VERSION: 2.0.13 - Debug path format mismatch
 // LAST UPDATED: 2025-10-20
-// CHANGES: Add detailed event logging, prevent queue processing if not indexed
+// CHANGES: Log sample paths to diagnose why all files detected as deleted
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -581,6 +581,18 @@ class RAGSystem {
 
     console.log('[RAG] Checking for files modified since last index...');
     const files = this.plugin.app.vault.getMarkdownFiles();
+
+    // Debug: Log path formats
+    console.log(`[RAG] Vault files count: ${files.length}`);
+    console.log(`[RAG] Embeddings count: ${this.embeddings.size}`);
+    if (files.length > 0) {
+      console.log(`[RAG] Sample vault path: "${files[0].path}"`);
+    }
+    const embeddingKeys = Array.from(this.embeddings.keys());
+    if (embeddingKeys.length > 0) {
+      console.log(`[RAG] Sample embedding path: "${embeddingKeys[0]}"`);
+    }
+
     const toUpdate = [];
 
     for (const file of files) {
@@ -1816,7 +1828,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.12'
+      text: 'v2.0.13'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
