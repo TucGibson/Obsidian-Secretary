@@ -1,7 +1,7 @@
 # ============================================================================
-# VERSION: 2.0.0 - Semantic-First Architecture
+# VERSION: 2.0.1 - Improved Error Handling
 # LAST UPDATED: 2025-10-20
-# CHANGES: Aligned with semantic-first approach, removed find_in_files references
+# CHANGES: Better error messages for API issues
 # ============================================================================
 
 # Pillar 5 – Execution & Termination (Semantic-First Edition)

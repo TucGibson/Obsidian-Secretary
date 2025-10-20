@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.0 - Semantic-First Architecture
+// VERSION: 2.0.1 - Improved Error Handling
 // LAST UPDATED: 2025-10-20
-// CHANGES: Removed find_in_files tool, simplified to semantic search only
+// CHANGES: Added better error messages for API key issues (401, 429, 403 errors)
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -220,13 +220,21 @@ class RAGSystem {
         model: this.plugin.settings.embeddingModel,
         input: text,
         encoding_format: 'float'
-      })
+      }),
+      throw: false
     });
-    
+
     if (response.status !== 200) {
-      throw new Error(`Embedding API error: ${response.status}`);
+      // Provide helpful error messages
+      if (response.status === 401) {
+        throw new Error(`Invalid API key. Please update your OpenAI API key in Settings → AI Agent.`);
+      } else if (response.status === 429) {
+        throw new Error(`Rate limit exceeded. Please wait and try again.`);
+      } else {
+        throw new Error(`Embedding API error: ${response.status}`);
+      }
     }
-    
+
     return response.json.data[0].embedding;
   }
   
@@ -368,7 +376,17 @@ class RAGSystem {
         
         if (response.status !== 200) {
           console.error(`[RAG] API error for ${file.path}:`, response.status, response.json);
-          throw new Error(`Embedding API error ${response.status}: ${JSON.stringify(response.json)}`);
+
+          // Provide helpful error messages based on status code
+          if (response.status === 401) {
+            throw new Error(`Invalid API key. Please check your OpenAI API key in plugin settings. Go to Settings → AI Agent → OpenAI API Key and update it. You can get a valid key at https://platform.openai.com/api-keys`);
+          } else if (response.status === 429) {
+            throw new Error(`Rate limit exceeded. Please wait a moment and try again, or check your OpenAI API quota.`);
+          } else if (response.status === 403) {
+            throw new Error(`Access forbidden. Your API key may not have permission to use the embeddings API.`);
+          } else {
+            throw new Error(`Embedding API error ${response.status}: ${JSON.stringify(response.json)}`);
+          }
         }
         
         const embeddings = response.json.data;
@@ -1475,7 +1493,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.0 (Semantic-First)'
+      text: 'v2.0.1'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -1507,7 +1525,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
     
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.0 (Semantic-First)\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.1\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
