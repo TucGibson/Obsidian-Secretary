@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.2 - API Key Validation & Debugging
+// VERSION: 2.0.3 - Better Indexing Progress
 // LAST UPDATED: 2025-10-20
-// CHANGES: Added API key length validation, format checking, and detailed debugging logs
+// CHANGES: Added file name, percentage, and better visual feedback during indexing
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1511,7 +1511,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.2'
+      text: 'v2.0.3'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -1543,7 +1543,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
     
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.2\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.3\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -1574,13 +1574,18 @@ class ChatView extends ItemView {
     };
   }
   
-  updateIndexStatus() {
+  updateIndexStatus(currentFile = null, current = 0, total = 0) {
     if (!this.statusEl) return;
-    
+
     const stats = this.plugin.ragSystem.getIndexStats();
-    
+
     if (stats.indexing) {
-      this.statusEl.textContent = '⏳ Indexing in progress...';
+      if (current > 0 && total > 0) {
+        const percentage = Math.round((current / total) * 100);
+        this.statusEl.textContent = `⏳ Indexing: ${current}/${total} (${percentage}%)`;
+      } else {
+        this.statusEl.textContent = '⏳ Indexing in progress...';
+      }
       this.statusEl.className = 'index-status indexing';
     } else if (stats.indexed) {
       this.statusEl.textContent = `✓ Indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks`;
@@ -1592,19 +1597,25 @@ class ChatView extends ItemView {
   }
   
   async indexVault() {
-    const statusMsg = this.addMessage('system', '🔄 Indexing vault...');
+    const statusMsg = this.addMessage('system', '🔄 Starting indexing...');
     this.updateIndexStatus();
-    
+
     try {
       let lastUpdate = Date.now();
-      
+      let lastFile = '';
+
       await this.plugin.ragSystem.indexVault((path, current, total) => {
-        // Throttle updates to every 500ms
+        // Always update on file change or throttle to every 200ms
         const now = Date.now();
-        if (now - lastUpdate > 500 || current === total) {
-          statusMsg.textContent = `🔄 Indexing: ${current}/${total} files`;
-          this.updateIndexStatus();
+        const fileChanged = path !== lastFile;
+
+        if (fileChanged || now - lastUpdate > 200 || current === total) {
+          const percentage = Math.round((current / total) * 100);
+          const fileName = path.split('/').pop(); // Get just the filename
+          statusMsg.textContent = `🔄 Indexing: ${current}/${total} files (${percentage}%)\n📄 Current: ${fileName}`;
+          this.updateIndexStatus(fileName, current, total);
           lastUpdate = now;
+          lastFile = path;
         }
       });
       

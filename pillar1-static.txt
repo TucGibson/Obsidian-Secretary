@@ -1,7 +1,7 @@
 # ============================================================================
-# VERSION: 2.0.2 - API Key Validation
+# VERSION: 2.0.3 - Better Indexing Progress
 # LAST UPDATED: 2025-10-20
-# CHANGES: Added API key validation and debugging
+# CHANGES: Improved progress feedback during indexing
 # ============================================================================
 
 # Pillar 1 – Tool Use (Semantic-First Agent)
