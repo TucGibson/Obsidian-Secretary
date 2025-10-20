@@ -1468,10 +1468,19 @@ class ChatView extends ItemView {
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass('chat-view');
-    
+
     const header = container.createDiv({ cls: 'chat-header' });
     header.createEl('strong', { text: 'AI Agent - Semantic RAG' });
-    
+
+    // Version display
+    const versionEl = header.createEl('span', {
+      cls: 'version-tag',
+      text: 'v2.0.0 (Semantic-First)'
+    });
+    versionEl.style.fontSize = '11px';
+    versionEl.style.opacity = '0.7';
+    versionEl.style.marginLeft = '10px';
+
     // Index button
     const indexBtn = header.createEl('button', {
       cls: 'chat-btn',
@@ -1498,8 +1507,8 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
     
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG!\n\n';
-    
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.0 (Semantic-First)\n\n';
+
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
     } else {
