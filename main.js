@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.6 - Stats Display Improvements
+// VERSION: 2.0.7 - Cache Debugging
 // LAST UPDATED: 2025-10-20
-// CHANGES: Add timing stats, accurate token accounting, list format display
+// CHANGES: Add cache debugging logs to diagnose prompt caching behavior
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
