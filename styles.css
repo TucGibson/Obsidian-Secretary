@@ -93,19 +93,30 @@ body {
 }
 
 .chat-btn {
-    background: var(--bg-hover);
-    border: 1px solid var(--border);
-    color: var(--text-mid);
-    padding: 6px 12px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: var(--font-sm);
-    font-family: inherit;
-    transition: background var(--transition);
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-width: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: var(--text-mid) !important;
+    padding: 6px 12px !important;
+    border-radius: var(--radius-sm) !important;
+    cursor: pointer !important;
+    font-size: var(--font-sm) !important;
+    font-family: inherit !important;
+    transition: all var(--transition) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--spacing-sm) !important;
 }
 
 .chat-btn:hover {
-    background: var(--border);
+    background: rgba(255, 255, 255, 0.05) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-bright) !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 /* Index status */
@@ -265,8 +276,8 @@ button.btn.btn,
 button.btn.btn:hover,
 .chat-view .btn:hover,
 .agent-response .btn:hover {
-    background: none !important;
-    background-color: transparent !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
     color: var(--text-mid) !important;
     box-shadow: none !important;
     border: none !important;
@@ -285,14 +296,16 @@ button.btn.btn:hover,
 .divider-h {
     height: 1px;
     width: 100%;
-    background: var(--border);
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: none !important;
     grid-column: 1 / -1;
 }
 
 .divider-v {
     width: 1px;
     height: 100%;
-    background: var(--border);
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: none !important;
 }
 
 .divider-space-xs { margin: var(--spacing-xs) 0; }
@@ -406,19 +419,28 @@ button.btn.btn:hover,
 }
 
 .send-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--icon-primary);
-    transition: color 0.2s;
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-width: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    border-radius: var(--radius-sm) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--icon-primary) !important;
+    transition: all var(--transition) !important;
 }
 
 .send-btn:hover {
-    color: var(--text-bright);
+    background: rgba(255, 255, 255, 0.05) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-bright) !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 .send-btn svg {
@@ -441,7 +463,8 @@ button.btn.btn:hover,
 .toolbar-divider {
     width: 1px;
     height: 20px;
-    background: var(--border);
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: none !important;
     margin: 0 8px;
 }
 
@@ -481,22 +504,30 @@ button.btn.btn:hover,
 }
 
 .toolbar-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--font-sm);
-    color: var(--text-dim);
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-    transition: color var(--transition);
-    font-family: inherit;
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-width: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-size: var(--font-sm) !important;
+    color: var(--text-dim) !important;
+    padding: 6px 10px !important;
+    border-radius: var(--radius-sm) !important;
+    transition: all var(--transition) !important;
+    font-family: inherit !important;
 }
 
 .toolbar-btn:hover {
-    color: var(--text-mid);
+    background: rgba(255, 255, 255, 0.05) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-mid) !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 .char-count {
