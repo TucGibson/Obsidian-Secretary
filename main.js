@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.15 - Add vault folder structure to context
+// VERSION: 2.0.16 - Clean debug logs, add cache efficiency, reasoning effort selector
 // LAST UPDATED: 2025-10-21
-// CHANGES: Include full folder structure in Pillar 2 for better path navigation
+// CHANGES: Reduced console spam, added cache hit % to stats, per-query reasoning effort
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -594,20 +594,16 @@ class RAGSystem {
   async loadEmbeddings() {
     try {
       const embeddingsPath = `${this.plugin.manifest.dir}/embeddings.json`;
-      console.log(`[RAG] Looking for embeddings at: ${embeddingsPath}`);
 
       // Check if file exists
       const exists = await this.plugin.app.vault.adapter.exists(embeddingsPath);
       if (!exists) {
-        console.log('[RAG] No saved embeddings found - will need to index vault');
+        console.log('[RAG] No saved embeddings found');
         return false;
       }
 
-      console.log('[RAG] Embeddings file exists, loading...');
       const json = await this.plugin.app.vault.adapter.read(embeddingsPath);
       const data = JSON.parse(json);
-
-      console.log(`[RAG] Parsed embeddings data: version=${data.version}, files=${data.embeddings?.length}`);
 
       // Restore embeddings
       this.embeddings.clear();
@@ -619,10 +615,10 @@ class RAGSystem {
       }
 
       this.indexed = true;
-      console.log(`[RAG] ✓ Successfully loaded ${this.embeddings.size} file embeddings from disk`);
+      console.log(`[RAG] Loaded ${this.embeddings.size} embeddings from disk`);
       return true;
     } catch (error) {
-      console.error('[RAG] ✗ Error loading embeddings:', error);
+      console.error('[RAG] Error loading embeddings:', error);
       return false;
     }
   }
@@ -632,38 +628,18 @@ class RAGSystem {
    */
   async checkModifiedFiles() {
     if (!this.indexed) {
-      console.log('[RAG] Skipping checkModifiedFiles - vault not indexed yet');
       return;
     }
 
-    console.log('[RAG] Checking for files modified since last index...');
     const files = this.plugin.app.vault.getMarkdownFiles();
-
-    // Debug: Log path formats
-    console.log(`[RAG] Vault files count: ${files.length}`);
-    console.log(`[RAG] Embeddings count: ${this.embeddings.size}`);
-    if (files.length > 0) {
-      console.log(`[RAG] Sample vault path: "${files[0].path}"`);
-    }
-    const embeddingKeys = Array.from(this.embeddings.keys());
-    if (embeddingKeys.length > 0) {
-      console.log(`[RAG] Sample embedding path: "${embeddingKeys[0]}"`);
-    }
-
     const toUpdate = [];
 
     for (const file of files) {
       const indexed = this.embeddings.get(file.path);
 
       if (!indexed) {
-        // New file
-        console.log(`[RAG]   New file detected: ${file.path}`);
         toUpdate.push(file);
       } else if (file.stat.mtime > indexed.indexed_at) {
-        // File modified since indexing
-        const mtimeDate = new Date(file.stat.mtime).toISOString();
-        const indexedDate = new Date(indexed.indexed_at).toISOString();
-        console.log(`[RAG]   Modified: ${file.path} (mtime: ${mtimeDate}, indexed: ${indexedDate})`);
         toUpdate.push(file);
       }
     }
@@ -678,7 +654,7 @@ class RAGSystem {
     }
 
     if (toUpdate.length > 0 || toDelete.length > 0) {
-      console.log(`[RAG] ⚠ Found ${toUpdate.length} new/modified files, ${toDelete.length} deleted files`);
+      console.log(`[RAG] Syncing: ${toUpdate.length} new/modified, ${toDelete.length} deleted`);
 
       // Delete removed files
       for (const path of toDelete) {
@@ -691,8 +667,6 @@ class RAGSystem {
       }
 
       await this.saveEmbeddings();
-    } else {
-      console.log('[RAG] ✓ No changes detected - all files up to date');
     }
   }
 
@@ -723,31 +697,27 @@ class RAGSystem {
     // Handle file creation
     const onCreate = this.plugin.app.vault.on('create', (file) => {
       if (file.extension === 'md') {
-        // Only queue if we don't already have embeddings for this file
         const indexed = this.embeddings.get(file.path);
         if (!indexed) {
-          console.log(`[RAG] ⚡ onCreate: ${file.path} (not indexed, queuing)`);
+          console.log(`[RAG] New file: ${file.path}`);
           this.queueFileUpdate(file.path);
-        } else {
-          console.log(`[RAG] onCreate: ${file.path} (already indexed, skipping)`);
         }
+        // Skip logging if already indexed - reduces console spam
       }
     });
 
     // Handle file modification
     const onModify = this.plugin.app.vault.on('modify', (file) => {
       if (file.extension === 'md') {
-        // Check if file actually needs re-indexing
         const indexed = this.embeddings.get(file.path);
         if (!indexed) {
-          console.log(`[RAG] ⚡ onModify: ${file.path} (not indexed, queuing)`);
+          console.log(`[RAG] Modified file (not indexed): ${file.path}`);
           this.queueFileUpdate(file.path);
         } else if (file.stat.mtime > indexed.indexed_at) {
-          console.log(`[RAG] ⚡ onModify: ${file.path} (modified, queuing)`);
+          console.log(`[RAG] Modified file: ${file.path}`);
           this.queueFileUpdate(file.path);
-        } else {
-          console.log(`[RAG] onModify: ${file.path} (up to date, skipping)`);
         }
+        // Skip logging if up to date - reduces console spam
       }
     });
 
@@ -1490,9 +1460,10 @@ class ToolManager {
 ///// PART 5 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class AgentLoop {
-  constructor(plugin, userMessage) {
+  constructor(plugin, userMessage, reasoningEffort = null) {
     this.plugin = plugin;
     this.userMessage = userMessage;
+    this.reasoningEffort = reasoningEffort; // Per-query reasoning effort
     this.maxIterations = 20;
     this.iteration = 0;
     this.callbacks = {};
@@ -1533,7 +1504,7 @@ class AgentLoop {
         { role: 'user', content: this.userMessage }
       ];
 
-      let response = await this.step(firstTurnInput);
+      let response = await this.step(firstTurnInput, this.reasoningEffort);
       accumulateUsage(response.usage);
 
       if (this.isDone) {
@@ -1554,7 +1525,7 @@ class AgentLoop {
 
         if (parsed.toolCalls && parsed.toolCalls.length > 0) {
           const outputs = await this.executeToolCalls(parsed.toolCalls);
-          response = await this.plugin.apiHandler.flushToolOutputs(outputs);
+          response = await this.plugin.apiHandler.flushToolOutputs(outputs, this.reasoningEffort);
           accumulateUsage(response.usage);
 
           if (this.isDone) {
@@ -1596,14 +1567,14 @@ class AgentLoop {
     }
   }
   
-  async step(firstTurnInput) {
+  async step(firstTurnInput, reasoningEffort = null) {
     this.iteration++;
     console.log(`\n=== AGENT LOOP ITERATION ${this.iteration} ===`);
-    
-    const firstResponse = await this.plugin.apiHandler.sendMessageWithTools(firstTurnInput);
-    
+
+    const firstResponse = await this.plugin.apiHandler.sendMessageWithTools(firstTurnInput, reasoningEffort);
+
     const parsed = this.plugin.apiHandler.parseResponse(firstResponse);
-    
+
     if (!parsed.toolCalls || parsed.toolCalls.length === 0) {
       if (parsed.text) {
         console.warn('[AgentLoop] Model returned text without tools on first turn');
@@ -1613,10 +1584,10 @@ class AgentLoop {
       }
       throw new Error('Model returned no tool calls and no text');
     }
-    
+
     const outputs = await this.executeToolCalls(parsed.toolCalls);
-    const followupResponse = await this.plugin.apiHandler.flushToolOutputs(outputs);
-    
+    const followupResponse = await this.plugin.apiHandler.flushToolOutputs(outputs, reasoningEffort);
+
     return followupResponse;
   }
   
@@ -1713,19 +1684,22 @@ class APIHandler {
   constructor(plugin) {
     this.plugin = plugin;
   }
-  
-  async sendMessageWithTools(inputItems) {
+
+  async sendMessageWithTools(inputItems, reasoningEffort = null) {
     const tools = this.plugin.toolManager.getToolSchemas();
-    
+
     console.log('[API] Sending request');
     console.log('[API] Input items:', inputItems.length);
-    
+
+    // Use per-query reasoning effort if provided, otherwise fall back to global setting
+    const effectiveReasoningEffort = reasoningEffort || this.plugin.settings.reasoningEffort;
+
     const requestBody = {
       model: this.plugin.settings.model,
       input: inputItems,
       tools: tools,
       parallel_tool_calls: true,
-      reasoning: { effort: this.plugin.settings.reasoningEffort },
+      reasoning: { effort: effectiveReasoningEffort },
       text: { verbosity: this.plugin.settings.textVerbosity },
       store: true,
       stream: false
@@ -1761,22 +1735,22 @@ class APIHandler {
     return data;
   }
   
-  async flushToolOutputs(outputs) {
+  async flushToolOutputs(outputs, reasoningEffort = null) {
     if (!outputs || outputs.length === 0) {
       return null;
     }
-    
+
     console.log('[API] Flushing', outputs.length, 'function_call_output items');
-    
+
     for (const output of outputs) {
       if (!output.call_id) {
         throw new Error('Cannot flush output without call_id');
       }
     }
-    
-    const response = await this.sendMessageWithTools(outputs);
+
+    const response = await this.sendMessageWithTools(outputs, reasoningEffort);
     console.log('[API] Tool outputs flushed successfully');
-    
+
     return response;
   }
   
@@ -1885,7 +1859,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.15'
+      text: 'v2.0.16'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -1915,30 +1889,82 @@ class ChatView extends ItemView {
     this.updateIndexStatus();
     
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
-    
+
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.5\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.16\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
     } else {
       welcomeMsg += '⚠️ Vault not indexed yet. Click "Index Vault" to enable semantic search.';
     }
-    
+
     this.addMessage('system', welcomeMsg);
-    
+
     const inputContainer = container.createDiv({ cls: 'chat-input-container' });
-    
+
+    // Reasoning effort selector row
+    const controlsRow = inputContainer.createDiv({ cls: 'chat-controls-row' });
+    controlsRow.style.display = 'flex';
+    controlsRow.style.alignItems = 'center';
+    controlsRow.style.gap = '8px';
+    controlsRow.style.marginBottom = '8px';
+    controlsRow.style.fontSize = '13px';
+
+    const reasoningLabel = controlsRow.createEl('span', {
+      text: 'Reasoning effort:',
+      cls: 'reasoning-label'
+    });
+    reasoningLabel.style.color = 'var(--text-muted)';
+    reasoningLabel.style.fontSize = '12px';
+
+    this.reasoningSelect = controlsRow.createEl('select', {
+      cls: 'reasoning-select'
+    });
+    this.reasoningSelect.style.padding = '4px 8px';
+    this.reasoningSelect.style.borderRadius = '4px';
+    this.reasoningSelect.style.border = '1px solid var(--background-modifier-border)';
+    this.reasoningSelect.style.background = 'var(--background-primary)';
+    this.reasoningSelect.style.color = 'var(--text-normal)';
+    this.reasoningSelect.style.cursor = 'pointer';
+
+    // Add options (default to 'low' as requested)
+    const options = [
+      { value: 'minimal', label: 'Minimal' },
+      { value: 'low', label: 'Low (Default)' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'high', label: 'High' }
+    ];
+
+    options.forEach(opt => {
+      const option = this.reasoningSelect.createEl('option', {
+        value: opt.value,
+        text: opt.label
+      });
+      if (opt.value === 'low') {
+        option.selected = true;
+      }
+    });
+
+    const reasoningHint = controlsRow.createEl('span', {
+      text: 'How much the model thinks before responding',
+      cls: 'reasoning-hint'
+    });
+    reasoningHint.style.color = 'var(--text-faint)';
+    reasoningHint.style.fontSize = '11px';
+    reasoningHint.style.fontStyle = 'italic';
+    reasoningHint.style.marginLeft = 'auto';
+
     this.inputEl = inputContainer.createEl('textarea', {
       cls: 'chat-input',
       placeholder: 'Ask me anything about your vault...'
     });
-    
+
     this.sendBtn = inputContainer.createEl('button', {
       cls: 'chat-send-btn',
       text: 'Send'
     });
-    
+
     this.sendBtn.onclick = () => this.handleSend();
     this.inputEl.onkeydown = (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -2008,19 +2034,22 @@ class ChatView extends ItemView {
   async handleSend() {
     const message = this.inputEl.value.trim();
     if (!message) return;
-    
+
     this.inputEl.value = '';
     this.inputEl.disabled = true;
     this.sendBtn.disabled = true;
-    
+
     this.addMessage('user', message);
-    
+
     const thinkingEl = this.chatEl.createDiv({ cls: 'chat-message thinking' });
     thinkingEl.textContent = '🤔 Thinking...';
-    
+
+    // Get selected reasoning effort (default to 'low')
+    const reasoningEffort = this.reasoningSelect?.value || 'low';
+
     try {
-      const agentLoop = new AgentLoop(this.plugin, message);
-      
+      const agentLoop = new AgentLoop(this.plugin, message, reasoningEffort);
+
       const result = await agentLoop.run({
         onUpdate: (msg) => {
           thinkingEl.textContent = `🤔 ${msg}`;
@@ -2117,12 +2146,20 @@ class ChatView extends ItemView {
     const outputTokens = usage.total_output_tokens || 0;
     const reasoningTokens = usage.total_reasoning_tokens || 0;
 
+    // Cache efficiency metrics
+    const cacheHitRate = totalInput > 0 ? ((cachedTokens / totalInput) * 100).toFixed(1) : '0.0';
+
     // Pricing (cached tokens get 90% discount)
     const pricing = PRICING['gpt-5-nano'];
     const costCached = (cachedTokens / 1_000_000) * pricing.input * 0.1;
     const costFresh = (freshTokens / 1_000_000) * pricing.input;
     const costOutput = (outputTokens / 1_000_000) * pricing.output;
     const costTotal = costCached + costFresh + costOutput;
+
+    // Calculate savings from caching
+    const costWithoutCache = ((totalInput / 1_000_000) * pricing.input) + costOutput;
+    const savings = costWithoutCache - costTotal;
+    const savingsPercent = costWithoutCache > 0 ? ((savings / costWithoutCache) * 100).toFixed(1) : '0.0';
 
     // Timing
     const elapsedSec = (elapsedMs / 1000).toFixed(2);
@@ -2132,6 +2169,7 @@ class ChatView extends ItemView {
       '--- Stats (Total Across All API Calls) ---',
       `• Iterations: ${iterations}`,
       `• Time: ${elapsedSec}s`,
+      `• Cache Efficiency: ${cacheHitRate}% hit rate (saved $${savings.toFixed(6)} / ${savingsPercent}%)`,
       `• Tokens:`,
       `  - Cached input: ${cachedTokens.toLocaleString()} ($${costCached.toFixed(6)})`,
       `  - Fresh input: ${freshTokens.toLocaleString()} ($${costFresh.toFixed(6)})`,
