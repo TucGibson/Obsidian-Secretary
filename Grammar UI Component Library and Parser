@@ -46,6 +46,8 @@ export const Text = ({
   color = 'mid', 
   weight = 'normal',
   mono = false,
+  link = false,
+  onClick,
   children,
   style = {}
 }) => {
@@ -56,15 +58,33 @@ export const Text = ({
     muted: tokens.colors.textMuted,
   };
 
+  const baseStyle = {
+    fontSize: tokens.fontSize[size],
+    color: colorMap[color],
+    fontWeight: weight === 'medium' ? 500 : 400,
+    fontFamily: mono ? 'monospace' : 'inherit',
+    lineHeight: '1.5',
+    ...style
+  };
+
+  if (link) {
+    return (
+      <div 
+        style={{
+          ...baseStyle,
+          cursor: 'pointer',
+          color: tokens.colors.accent,
+          textDecoration: 'none',
+        }}
+        onClick={onClick}
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <div style={{
-      fontSize: tokens.fontSize[size],
-      color: colorMap[color],
-      fontWeight: weight === 'medium' ? 500 : 400,
-      fontFamily: mono ? 'monospace' : 'inherit',
-      lineHeight: '1.5',
-      ...style
-    }}>
+    <div style={baseStyle}>
       {children}
     </div>
   );
@@ -94,7 +114,7 @@ export const Icon = ({ name, size = 14, color = 'primary' }) => {
   return <IconComponent size={size} color={colorMap[color]} style={{ flexShrink: 0, marginTop: '2px' }} />;
 };
 
-// NEW: Badge Component
+// Badge Component
 export const Badge = ({ children, variant = 'default' }) => {
   const variants = {
     default: { bg: tokens.colors.bgSurface, color: tokens.colors.textDim },
@@ -121,7 +141,7 @@ export const Badge = ({ children, variant = 'default' }) => {
   );
 };
 
-// NEW: Card Component
+// Card Component
 export const Card = ({ children, hover = false, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -144,7 +164,7 @@ export const Card = ({ children, hover = false, onClick }) => {
   );
 };
 
-// NEW: Stack Component (simpler than Grid)
+// Stack Component
 export const Stack = ({ direction = 'vertical', gap = 'md', align = 'stretch', children, style = {} }) => {
   return (
     <div style={{
@@ -159,7 +179,7 @@ export const Stack = ({ direction = 'vertical', gap = 'md', align = 'stretch', c
   );
 };
 
-// NEW: Link Component
+// Link Component
 export const Link = ({ icon, href, onClick, children }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -202,20 +222,10 @@ export const Grid = ({
   background = false,
   padding,
   hover = false,
-  collapsible = false,
-  defaultExpanded = false,
-  previewLines = 2,
   children,
   style = {}
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-
-  const childArray = React.Children.toArray(children);
-  const visibleChildren = collapsible && !isExpanded 
-    ? childArray.slice(0, previewLines) 
-    : childArray;
-  const hasMore = collapsible && childArray.length > previewLines;
 
   let gridCols;
   if (cols === 'auto') {
@@ -244,49 +254,13 @@ export const Grid = ({
     ...style
   };
 
-  const content = (
-    <>
-      {collapsible ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', gridColumn: '1 / -1' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: tokens.spacing[gap] }}>
-            {visibleChildren}
-          </div>
-          <Icons.ChevronRight 
-            size={12} 
-            color={tokens.colors.iconDim}
-            style={{
-              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: `transform ${tokens.transition}`,
-              marginTop: '2px',
-              flexShrink: 0
-            }}
-          />
-        </div>
-      ) : (
-        visibleChildren
-      )}
-      {collapsible && isExpanded && hasMore && (
-        <>
-          <div style={{ 
-            gridColumn: '1 / -1',
-            height: '1px',
-            background: tokens.colors.border,
-            margin: `${tokens.spacing.md} 0`
-          }} />
-          {childArray.slice(previewLines)}
-        </>
-      )}
-    </>
-  );
-
   return (
     <div 
       style={baseStyle}
       onMouseEnter={() => hover && setIsHovered(true)}
       onMouseLeave={() => hover && setIsHovered(false)}
-      onClick={() => collapsible && setIsExpanded(!isExpanded)}
     >
-      {content}
+      {children}
     </div>
   );
 };
@@ -331,7 +305,6 @@ export const Divider = ({ direction = 'h', space = 'lg' }) => {
         height: '1px',
         width: '100%',
         margin: `${tokens.spacing[space]} 0`,
-        gridColumn: '1 / -1'
       } : {
         width: '1px',
         height: '100%',
@@ -339,38 +312,6 @@ export const Divider = ({ direction = 'h', space = 'lg' }) => {
       }),
       background: tokens.colors.border,
     }} />
-  );
-};
-
-// ListItem Component
-export const ListItem = ({ icon, hover = true, onClick, children }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => hover && setIsHovered(true)}
-      onMouseLeave={() => hover && setIsHovered(false)}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: icon ? 'auto 1fr' : '1fr',
-        alignItems: 'start',
-        gap: tokens.spacing.md,
-        padding: `${tokens.spacing.md} 0`,
-        background: isHovered ? tokens.colors.bgHover : 'transparent',
-        ...(isHovered && {
-          paddingLeft: tokens.spacing.md,
-          paddingRight: tokens.spacing.md,
-          marginLeft: `-${tokens.spacing.md}`,
-          marginRight: `-${tokens.spacing.md}`,
-        }),
-        cursor: hover ? 'pointer' : 'default',
-        transition: `all ${tokens.transition}`,
-      }}
-    >
-      {icon && <Icon name={icon} size={12} color="dim" />}
-      <div style={{ minWidth: 0 }}>{children}</div>
-    </div>
   );
 };
 
@@ -416,434 +357,22 @@ export const Spinner = () => {
   );
 };
 
-// ENHANCED: Parse props with better type conversion
-const parseProps = (propsStr) => {
-  const props = {};
-  if (!propsStr) return props;
-  
-  propsStr.split(',').forEach(prop => {
-    const [key, ...valParts] = prop.trim().split('-');
-    const rawVal = valParts.join('-');
-    
-    // Type conversion
-    let val;
-    if (rawVal === '') val = true;
-    else if (rawVal === 'true') val = true;
-    else if (rawVal === 'false') val = false;
-    else if (!isNaN(rawVal) && rawVal !== '') val = Number(rawVal);
-    else val = rawVal;
-    
-    props[key] = val;
-  });
-  
-  return props;
-};
-
-// SEMANTIC LAYER: Expand high-level patterns into low-level grammar
-const expandSemanticPattern = (pattern) => {
-  // Match semantic pattern: [semantic-type:key-val,key-val]
-  const match = pattern.match(/^\[(file-result|search-result|tag-group|stat-card|file-list-item):(.*?)\]/);
-  if (!match) return null;
-  
-  const [, type, propsStr] = match;
-  const props = parseProps(propsStr);
-  
-  switch (type) {
-    case 'file-result':
-      return `[card]
-  [stack:gap-sm]
-    [grid:cols-auto,gap-sm]
-      [icon:name-file-text,size-14,color-dim]
-      [text:size-sm,color-bright] ${props.path || 'Untitled'}
-    [/grid]
-    ${props.tags ? `[grid:cols-auto,gap-sm]
-      [icon:name-tag,size-12,color-dim]
-      [text:size-sm,color-dim] ${props.tags}
-    [/grid]` : ''}
-    ${props.modified ? `[grid:cols-auto,gap-sm]
-      [icon:name-clock,size-12,color-dim]
-      [text:size-sm,color-dim] ${props.modified}
-    [/grid]` : ''}
-  [/stack]
-[/card]
-[grid:cols-auto,gap-sm]
-  [button:icon-external-link,action-open] Open file
-  [button:icon-link,action-view-links] View links
-[/grid]`;
-
-    case 'search-result':
-      return `[card:hover-true]
-  [stack:gap-sm]
-    [grid:cols-auto,gap-sm]
-      [icon:name-file-text,size-12,color-dim]
-      [text:size-sm,color-mid] ${props.path || 'Untitled'}
-    [/grid]
-    ${props.preview ? `[text:size-sm,color-dim] ${props.preview}` : ''}
-    ${props.matches ? `[badge:variant-accent] ${props.matches} matches` : ''}
-  [/stack]
-[/card]`;
-
-    case 'tag-group':
-      const tags = props.tags ? props.tags.split('|') : [];
-      return `[grid:cols-auto-fit,min-80px,gap-sm]
-  ${tags.map(tag => {
-    const [name, count] = tag.split(':');
-    return `[card]
-    [grid:cols-auto,gap-sm]
-      [icon:name-hash,size-12,color-dim]
-      [text:size-sm,color-mid] ${name}
-      ${count ? `[text:size-sm,color-muted] (${count})` : ''}
-    [/grid]
-  [/card]`;
-  }).join('\n  ')}
-[/grid]`;
-
-    case 'stat-card':
-      return `[card]
-  [stack:gap-xs]
-    [text:size-xl,color-bright] ${props.value || '0'}
-    [text:size-sm,color-dim] ${props.label || 'Stat'}
-  [/stack]
-[/card]`;
-
-    case 'file-list-item':
-      return `[grid:cols-auto,gap-sm,align-center]
-  [icon:name-${props.icon || 'file'},size-12,color-dim]
-  [text:size-sm,color-mid] ${props.path || 'Untitled'}
-  ${props.badge ? `[badge] ${props.badge}` : ''}
-[/grid]`;
-
-    default:
-      return null;
-  }
-};
-
-// ENHANCED: Grammar Parser with validation
-export const parseGrammar = (grammar) => {
-  // First pass: expand semantic patterns
-  let expanded = grammar;
-  const semanticPattern = /\[(file-result|search-result|tag-group|stat-card|file-list-item):[^\]]+\]/g;
-  const matches = grammar.match(semanticPattern);
-  
-  if (matches) {
-    matches.forEach(match => {
-      const expandedPattern = expandSemanticPattern(match);
-      if (expandedPattern) {
-        expanded = expanded.replace(match, expandedPattern);
-      }
-    });
-  }
-  
-  const normalized = expanded
-    .replace(/\]\s*\[/g, ']\n[')
-    .trim();
-    
-  const lines = normalized.split('\n');
-  const elements = [];
-  const stack = [];
-  
-  for (let line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    
-    if (trimmed.startsWith('[/')) {
-      if (stack.length > 0) {
-        const completed = stack.pop();
-        if (stack.length === 0) {
-          elements.push(completed);
-        } else {
-          stack[stack.length - 1].children.push(completed);
-        }
-      }
-      continue;
-    }
-    
-    const tagMatch = trimmed.match(/^\[(\w+)(?::([^\]]+))?\]\s*(.*)/);
-    if (tagMatch) {
-      const [, type, propsStr, contentAfterTag] = tagMatch;
-      const props = parseProps(propsStr);
-      
-      const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
-      
-      // Validation
-      if (props.cols === 'auto' && props.min) {
-        console.warn('Grid: "auto" cols with "min" prop may not work as expected');
-      }
-      
-      const containerTypes = ['grid', 'container', 'stack', 'card'];
-      if (!contentAfterTag && containerTypes.includes(type)) {
-        stack.push(element);
-      } else if (stack.length > 0) {
-        stack[stack.length - 1].children.push(element);
-      } else {
-        elements.push(element);
-      }
-    }
-  }
-  
-  while (stack.length > 0) {
-    const completed = stack.pop();
-    if (stack.length === 0) {
-      elements.push(completed);
-    } else {
-      stack[stack.length - 1].children.push(completed);
-    }
-  }
-  
-  return elements;
-};
-
-// ENHANCED: Grammar Renderer with better action handling
-export const GrammarRenderer = ({ grammar, onAction }) => {
-  const elements = parseGrammar(grammar);
-  
-  const handleAction = (actionData) => {
-    if (onAction) {
-      onAction({
-        type: actionData.action || actionData.type,
-        data: actionData.data ? JSON.parse(actionData.data) : {},
-        target: actionData.target,
-        props: actionData
-      });
-    }
-  };
-  
-  const renderElement = (element, index) => {
-    const { type, props, content, children } = element;
-    
-    switch (type) {
-      case 'text':
-        return <Text key={index} {...props}>{content}</Text>;
-      
-      case 'icon':
-        return <Icon key={index} name={props.name} {...props} />;
-      
-      case 'badge':
-        return <Badge key={index} variant={props.variant}>{content}</Badge>;
-      
-      case 'card':
-        return (
-          <Card key={index} hover={props.hover} onClick={props.action ? () => handleAction(props) : null}>
-            {content && <Text>{content}</Text>}
-            {children.map((child, i) => renderElement(child, i))}
-          </Card>
-        );
-      
-      case 'stack':
-        return (
-          <Stack key={index} direction={props.direction} gap={props.gap} align={props.align}>
-            {content && <Text>{content}</Text>}
-            {children.map((child, i) => renderElement(child, i))}
-          </Stack>
-        );
-      
-      case 'grid':
-      case 'container':
-        return (
-          <Grid key={index} {...props}>
-            {content && <Text>{content}</Text>}
-            {children.map((child, i) => renderElement(child, i))}
-          </Grid>
-        );
-      
-      case 'button':
-        return (
-          <Button 
-            key={index} 
-            {...props} 
-            ariaLabel={props['aria-label']}
-            onClick={() => handleAction(props)}
-          >
-            {content}
-          </Button>
-        );
-      
-      case 'link':
-        return (
-          <Link 
-            key={index} 
-            icon={props.icon}
-            onClick={() => handleAction(props)}
-          >
-            {content}
-          </Link>
-        );
-      
-      case 'divider':
-        return <Divider key={index} {...props} />;
-      
-      case 'listitem':
-        return (
-          <ListItem key={index} {...props}>
-            {content && <Text size="sm" color="mid">{content}</Text>}
-            {children.map((child, i) => renderElement(child, i))}
-          </ListItem>
-        );
-      
-      case 'status':
-        return <Status key={index} type={props.type}>{content}</Status>;
-      
-      case 'spinner':
-        return <Spinner key={index} />;
-      
-      default:
-        console.warn(`Unknown element type: ${type}`);
-        return null;
-    }
-  };
-  
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.md }}>
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-      {elements.map((el, i) => renderElement(el, i))}
-    </div>
-  );
-};
-
-// Demo Component
+// Demo Component with Direct React Rendering
 export default function Demo() {
   const [activeTab, setActiveTab] = useState('semantic');
-  const [grammar, setGrammar] = useState(`[file-result:path-/Projects/Website Redesign.md,tags-#project #design,modified-2024-03-15]`);
   const [lastAction, setLastAction] = useState(null);
 
   const handleAction = (action) => {
     setLastAction(action);
     console.log('Action triggered:', action);
   };
-
-  const semanticExamples = {
-    fileResult: {
-      name: 'File Result (Semantic)',
-      grammar: `[text:size-sm,color-mid] ✦ I found the file you were looking for:
-[divider:space-md]
-[file-result:path-/Projects/Website Redesign.md,tags-#project #design #2024,modified-2024-03-15]`
-    },
-    searchResult: {
-      name: 'Search Results (Semantic)',
-      grammar: `[text:size-sm,color-mid] ✦ I found 2 files mentioning "Emma":
-[divider:space-md]
-[stack:gap-md]
-  [search-result:path-/Journal/2024-03-15.md,preview-Emma had her first birthday party today...,matches-3]
-  [search-result:path-/Projects/Website.md,preview-Meeting with Emma to discuss design direction...,matches-2]
-[/stack]`
-    },
-    tagGroup: {
-      name: 'Tag Analysis (Semantic)',
-      grammar: `[text:size-sm,color-mid] ✦ Here are the most commonly used tags in your vault:
-[divider:space-md]
-[tag-group:tags-project:34|design:21|website:12|2024:8]`
-    },
-    statCards: {
-      name: 'Vault Statistics (Semantic)',
-      grammar: `[text:size-sm,color-mid] ✦ Here's an overview of your vault:
-[divider:space-md]
-[grid:cols-2,gap-lg]
-  [stat-card:value-1247,label-Total notes]
-  [stat-card:value-34,label-Tags]
-  [stat-card:value-23,label-Orphaned]
-  [stat-card:value-5,label-Modified today]
-[/grid]`
-    },
-    fileList: {
-      name: 'Recent Files (Semantic)',
-      grammar: `[text:size-sm,color-mid] ✦ These are your most recently modified files:
-[divider:space-md]
-[card]
-  [stack:gap-sm]
-    [text:size-sm,color-bright] Recent files
-    [divider:space-sm]
-    [file-list-item:path-/Projects/Website.md,icon-file-text]
-    [file-list-item:path-/Projects/Mobile App.md,icon-file-text,badge-Modified]
-    [file-list-item:path-/Archive/Old Notes.md,icon-archive]
-  [/stack]
-[/card]
-[grid:cols-auto,gap-sm]
-  [button:icon-folder,action-browse] Browse all
-  [button:icon-plus,action-create] New file
-[/grid]`
-    },
-    approval: {
-      name: 'Approval Request',
-      grammar: `[text:size-sm,color-mid] ✦ I can update the frontmatter for these 3 files. Would you like me to proceed?
-[divider:space-md]
-[card]
-  [stack:gap-sm]
-    [grid:cols-auto,gap-sm]
-      [icon:name-alert-circle,size-14]
-      [text:size-sm,color-bright] Modify 3 files
-    [/grid]
-    [text:size-sm,color-dim] This will add "status: active" to all project files in /Projects
-  [/stack]
-[/card]
-[stack:direction-horizontal,gap-sm]
-  [button:icon-check,action-approve,aria-label-Approve modification] Approve
-  [button:icon-x,action-reject,aria-label-Reject modification] Deny
-[/stack]`
-    }
-  };
-
-  const componentExamples = {
-    badges: {
-      name: 'Badges',
-      grammar: `[stack:direction-horizontal,gap-sm]
-  [badge:variant-default] Default
-  [badge:variant-accent] Accent
-  [badge:variant-success] Success
-  [badge:variant-error] Error
-[/stack]`
-    },
-    cards: {
-      name: 'Cards with Actions',
-      grammar: `[card]
-  [stack:gap-sm]
-    [text:size-sm,color-bright] Project Overview
-    [text:size-sm,color-dim] 12 files • Last updated today
-  [/stack]
-[/card]
-[grid:cols-auto,gap-sm]
-  [button:icon-external-link,action-open] Open
-  [button:icon-edit,action-edit] Edit
-[/grid]`
-    },
-    stacks: {
-      name: 'Stacks',
-      grammar: `[card]
-  [stack:gap-md]
-    [text:size-sm,color-bright] Vertical Stack
-    [stack:direction-horizontal,gap-sm]
-      [badge] One
-      [badge] Two
-      [badge] Three
-    [/stack]
-    [text:size-sm,color-dim] Nested horizontal stack inside vertical
-  [/stack]
-[/card]`
-    },
-    links: {
-      name: 'Links',
-      grammar: `[stack:gap-sm]
-  [link:icon-external-link] Open in new window
-  [link:icon-folder] Browse folder
-  [link:icon-search] Search files
-[/stack]`
-    },
-    actions: {
-      name: 'Actions & ARIA',
-      grammar: `[card]
-  [stack:gap-sm]
-    [text:size-sm,color-bright] Interactive elements
-    [text:size-sm,color-dim] Click buttons to test actions
-  [/stack]
-[/card]
-[stack:direction-horizontal,gap-sm]
-  [button:icon-check,action-approve,aria-label-Approve modification] Approve
-  [button:icon-x,action-reject,aria-label-Reject modification] Reject
-[/stack]`
-    }
+  
+  const formatFilePath = (path) => {
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    const parts = cleanPath.split('/');
+    const filename = parts[parts.length - 1];
+    const basename = filename.replace(/\.md$/, '');
+    return `[[${basename}]]`;
   };
 
   return (
@@ -859,7 +388,7 @@ export default function Demo() {
           Enhanced Grammar UI System
         </Text>
         <Text size="sm" color="dim" style={{ marginBottom: '24px' }}>
-          Two-tier grammar with semantic shortcuts & new components
+          Two-tier grammar with semantic shortcuts & clickable wikilinks
         </Text>
 
         <Grid cols="auto" gap="sm" style={{ marginBottom: '24px' }}>
@@ -867,7 +396,7 @@ export default function Demo() {
             Semantic Layer
           </Button>
           <Button primary={activeTab === 'components'} onClick={() => setActiveTab('components')}>
-            New Components
+            Components
           </Button>
           <Button primary={activeTab === 'editor'} onClick={() => setActiveTab('editor')}>
             Editor
@@ -876,92 +405,350 @@ export default function Demo() {
 
         {lastAction && (
           <Status type="info" style={{ marginBottom: '16px' }}>
-            Last action: {lastAction.type} {lastAction.target ? `(${lastAction.target})` : ''}
+            {lastAction.type === 'file-click' 
+              ? `Clicked file: ${lastAction.path}` 
+              : `Action: ${lastAction.type}`
+            }
           </Status>
         )}
 
         {activeTab === 'semantic' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            {Object.entries(semanticExamples).map(([key, { name, grammar }]) => (
-              <div key={key}>
-                <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                  {name}
-                </Text>
-                
-                <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                  Grammar:
-                </Text>
-                <pre style={{
-                  background: tokens.colors.bgSurface,
-                  border: `1px solid ${tokens.colors.border}`,
-                  borderRadius: tokens.radius.md,
-                  padding: tokens.spacing.lg,
-                  fontSize: tokens.fontSize.xs,
-                  color: tokens.colors.textMid,
-                  overflow: 'auto',
-                  marginBottom: '16px',
-                  fontFamily: 'monospace',
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {grammar}
-                </pre>
-                
-                <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                  Rendered:
-                </Text>
-                <GrammarRenderer grammar={grammar} onAction={handleAction} />
+            
+            <div>
+              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                File List with Clickable Wikilinks
+              </Text>
+              
+              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+                Grammar:
+              </Text>
+              <pre style={{
+                background: tokens.colors.bgSurface,
+                border: `1px solid ${tokens.colors.border}`,
+                borderRadius: tokens.radius.md,
+                padding: tokens.spacing.lg,
+                fontSize: tokens.fontSize.xs,
+                color: tokens.colors.textMid,
+                overflow: 'auto',
+                marginBottom: '16px',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap'
+              }}>{`[text:size-sm,color-mid] ✦ Found 3 files in Projects
+[divider:space-md]
+[stack:gap-sm]
+  [file-list-item:path-Projects/Website.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text,badge-Modified]
+  [file-list-item:path-Projects/Brand-Guidelines.md,link-true,icon-file-text]
+[/stack]`}</pre>
+              
+              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+                Rendered:
+              </Text>
+              <Text size="sm" color="mid" style={{ marginBottom: '16px' }}>
+                ✦ Found 3 files in Projects
+              </Text>
+              <Divider space="md" />
+              <Stack gap="sm" style={{ marginTop: '16px' }}>
+                <Grid cols="auto" gap="sm" align="center">
+                  <Icon name="file-text" size={12} color="dim" />
+                  <Text 
+                    size="sm" 
+                    color="mid" 
+                    link={true}
+                    onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Website.md') })}
+                  >
+                    {formatFilePath('Projects/Website.md')}
+                  </Text>
+                </Grid>
+                <Grid cols="auto" gap="sm" align="center">
+                  <Icon name="file-text" size={12} color="dim" />
+                  <Text 
+                    size="sm" 
+                    color="mid" 
+                    link={true}
+                    onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Mobile-App.md') })}
+                  >
+                    {formatFilePath('Projects/Mobile-App.md')}
+                  </Text>
+                  <Badge>Modified</Badge>
+                </Grid>
+                <Grid cols="auto" gap="sm" align="center">
+                  <Icon name="file-text" size={12} color="dim" />
+                  <Text 
+                    size="sm" 
+                    color="mid" 
+                    link={true}
+                    onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Brand-Guidelines.md') })}
+                  >
+                    {formatFilePath('Projects/Brand-Guidelines.md')}
+                  </Text>
+                </Grid>
+              </Stack>
+            </div>
+
+            <div>
+              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                Search Results with Context
+              </Text>
+              
+              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+                Grammar:
+              </Text>
+              <pre style={{
+                background: tokens.colors.bgSurface,
+                border: `1px solid ${tokens.colors.border}`,
+                borderRadius: tokens.radius.md,
+                padding: tokens.spacing.lg,
+                fontSize: tokens.fontSize.xs,
+                color: tokens.colors.textMid,
+                overflow: 'auto',
+                marginBottom: '16px',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap'
+              }}>{`[text:size-sm,color-mid] ✦ Found 2 entries mentioning "Emma"
+[divider:space-md]
+[stack:gap-md]
+  [search-result:path-Journal/2024-03-15.md,link-true,preview-Emma had her first birthday party...,matches-3]
+  [search-result:path-Projects/Website.md,link-true,preview-Meeting with Emma...,matches-2]
+[/stack]`}</pre>
+              
+              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+                Rendered:
+              </Text>
+              <Text size="sm" color="mid" style={{ marginBottom: '16px' }}>
+                ✦ Found 2 entries mentioning "Emma"
+              </Text>
+              <Divider space="md" />
+              <Stack gap="md" style={{ marginTop: '16px' }}>
+                <Card hover={true}>
+                  <Stack gap="sm">
+                    <Grid cols="auto" gap="sm" align="center">
+                      <Icon name="file-text" size={12} color="dim" />
+                      <Text 
+                        size="sm" 
+                        color="mid"
+                        link={true}
+                        onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Journal/2024-03-15.md') })}
+                      >
+                        {formatFilePath('Journal/2024-03-15.md')}
+                      </Text>
+                    </Grid>
+                    <Text size="sm" color="dim">
+                      Emma had her first birthday party today and it was magical...
+                    </Text>
+                    <Badge variant="accent">3 matches</Badge>
+                  </Stack>
+                </Card>
+                <Card hover={true}>
+                  <Stack gap="sm">
+                    <Grid cols="auto" gap="sm" align="center">
+                      <Icon name="file-text" size={12} color="dim" />
+                      <Text 
+                        size="sm" 
+                        color="mid"
+                        link={true}
+                        onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Website.md') })}
+                      >
+                        {formatFilePath('Projects/Website.md')}
+                      </Text>
+                    </Grid>
+                    <Text size="sm" color="dim">
+                      Meeting with Emma to discuss design direction...
+                    </Text>
+                    <Badge variant="accent">2 matches</Badge>
+                  </Stack>
+                </Card>
+              </Stack>
+            </div>
+
+            <div>
+              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                File Details with Actions
+              </Text>
+              <Text size="sm" color="mid" style={{ marginBottom: '16px' }}>
+                ✦ Here's what I found about that file
+              </Text>
+              <Divider space="md" />
+              <div style={{ marginTop: '16px' }}>
+                <Card>
+                  <Stack gap="sm">
+                    <Grid cols="auto" gap="sm" align="center">
+                      <Icon name="file-text" size={14} color="dim" />
+                      <Text 
+                        size="sm" 
+                        color="bright"
+                        link={true}
+                        onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Website-Redesign.md') })}
+                      >
+                        {formatFilePath('Projects/Website-Redesign.md')}
+                      </Text>
+                    </Grid>
+                    <Grid cols="auto" gap="sm" align="center">
+                      <Icon name="tag" size={12} color="dim" />
+                      <Text size="sm" color="dim">#project #design #2024</Text>
+                    </Grid>
+                    <Grid cols="auto" gap="sm" align="center">
+                      <Icon name="clock" size={12} color="dim" />
+                      <Text size="sm" color="dim">Modified: 2024-03-15</Text>
+                    </Grid>
+                  </Stack>
+                </Card>
+                <Grid cols="auto" gap="sm" style={{ marginTop: '8px' }}>
+                  <Button icon="external-link" onClick={() => handleAction({ type: 'open', action: 'open' })}>
+                    Open file
+                  </Button>
+                  <Button icon="link" onClick={() => handleAction({ type: 'view-links', action: 'view-links' })}>
+                    View links
+                  </Button>
+                </Grid>
               </div>
-            ))}
+            </div>
+
+            <div>
+              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                Vault Statistics
+              </Text>
+              <Text size="sm" color="mid" style={{ marginBottom: '16px' }}>
+                ✦ Here's an overview of your vault
+              </Text>
+              <Divider space="md" />
+              <Grid cols="2" gap="lg" style={{ marginTop: '16px' }}>
+                <Card>
+                  <Stack gap="xs">
+                    <Text size="xl" color="bright">1,247</Text>
+                    <Text size="sm" color="dim">Total notes</Text>
+                  </Stack>
+                </Card>
+                <Card>
+                  <Stack gap="xs">
+                    <Text size="xl" color="bright">34</Text>
+                    <Text size="sm" color="dim">Tags</Text>
+                  </Stack>
+                </Card>
+                <Card>
+                  <Stack gap="xs">
+                    <Text size="xl" color="bright">23</Text>
+                    <Text size="sm" color="dim">Orphaned</Text>
+                  </Stack>
+                </Card>
+                <Card>
+                  <Stack gap="xs">
+                    <Text size="xl" color="bright">5</Text>
+                    <Text size="sm" color="dim">Modified today</Text>
+                  </Stack>
+                </Card>
+              </Grid>
+            </div>
+
           </div>
         )}
 
         {activeTab === 'components' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            {Object.entries(componentExamples).map(([key, { name, grammar }]) => (
-              <div key={key}>
-                <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                  {name}
-                </Text>
-                
-                <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                  Grammar:
-                </Text>
-                <pre style={{
-                  background: tokens.colors.bgSurface,
-                  border: `1px solid ${tokens.colors.border}`,
-                  borderRadius: tokens.radius.md,
-                  padding: tokens.spacing.lg,
-                  fontSize: tokens.fontSize.xs,
-                  color: tokens.colors.textMid,
-                  overflow: 'auto',
-                  marginBottom: '16px',
-                  fontFamily: 'monospace',
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {grammar}
-                </pre>
-                
-                <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                  Rendered:
-                </Text>
-                <GrammarRenderer grammar={grammar} onAction={handleAction} />
-              </div>
-            ))}
+            
+            <div>
+              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                Badges
+              </Text>
+              
+              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+                Grammar:
+              </Text>
+              <pre style={{
+                background: tokens.colors.bgSurface,
+                border: `1px solid ${tokens.colors.border}`,
+                borderRadius: tokens.radius.md,
+                padding: tokens.spacing.lg,
+                fontSize: tokens.fontSize.xs,
+                color: tokens.colors.textMid,
+                overflow: 'auto',
+                marginBottom: '16px',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap'
+              }}>{`[stack:direction-horizontal,gap-sm]
+  [badge:variant-default] Default
+  [badge:variant-accent] Accent
+  [badge:variant-success] Success
+  [badge:variant-error] Error
+[/stack]`}</pre>
+              
+              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+                Rendered:
+              </Text>
+              <Stack direction="horizontal" gap="sm">
+                <Badge variant="default">Default</Badge>
+                <Badge variant="accent">Accent</Badge>
+                <Badge variant="success">Success</Badge>
+                <Badge variant="error">Error</Badge>
+              </Stack>
+            </div>
+
+            <div>
+              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                Cards with Actions
+              </Text>
+              <Card>
+                <Stack gap="sm">
+                  <Text size="sm" color="bright">Project Overview</Text>
+                  <Text size="sm" color="dim">12 files • Last updated today</Text>
+                </Stack>
+              </Card>
+              <Grid cols="auto" gap="sm" style={{ marginTop: '8px' }}>
+                <Button icon="external-link" onClick={() => handleAction({ type: 'open', action: 'open' })}>
+                  Open
+                </Button>
+                <Button icon="edit" onClick={() => handleAction({ type: 'edit', action: 'edit' })}>
+                  Edit
+                </Button>
+              </Grid>
+            </div>
+
+            <div>
+              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                Status Messages
+              </Text>
+              <Stack gap="sm">
+                <Status type="success">File created successfully</Status>
+                <Status type="error">Failed to delete file: Permission denied</Status>
+                <Status type="pending">Waiting for approval...</Status>
+                <Status type="info">Found 0 files matching criteria</Status>
+              </Stack>
+            </div>
+
+            <div>
+              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                Links
+              </Text>
+              <Stack gap="sm">
+                <Link icon="external-link" onClick={() => handleAction({ type: 'external' })}>
+                  Open in new window
+                </Link>
+                <Link icon="folder" onClick={() => handleAction({ type: 'folder' })}>
+                  Browse folder
+                </Link>
+                <Link icon="search" onClick={() => handleAction({ type: 'search' })}>
+                  Search files
+                </Link>
+              </Stack>
+            </div>
+
           </div>
         )}
 
         {activeTab === 'editor' && (
           <>
             <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-              Try a semantic pattern:
+              Test your own grammar patterns:
+            </Text>
+            <Text size="sm" color="dim" style={{ marginBottom: '16px' }}>
+              Note: Editor is for reference only. Use the rendered React examples in Semantic/Components tabs.
             </Text>
             <textarea
-              value={grammar}
-              onChange={(e) => setGrammar(e.target.value)}
-              placeholder="Try: [file-result:path-/My File.md,tags-#test,modified-Today]"
+              placeholder="Paste grammar syntax here to see the structure..."
               style={{
                 width: '100%',
-                minHeight: '150px',
+                minHeight: '300px',
                 background: tokens.colors.bgSurface,
                 border: `1px solid ${tokens.colors.border}`,
                 borderRadius: tokens.radius.md,
@@ -970,18 +757,22 @@ export default function Demo() {
                 fontSize: tokens.fontSize.sm,
                 fontFamily: 'monospace',
                 resize: 'vertical',
-                marginBottom: '16px'
               }}
+              defaultValue={`[text:size-sm,color-mid] ✦ Example grammar structure
+[divider:space-md]
+[stack:gap-sm]
+  [file-list-item:path-Projects/Website.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text]
+[/stack]`}
             />
-            
-            <Text size="sm" color="dim" style={{ marginBottom: '16px' }}>
-              Rendered:
-            </Text>
-            
-            <GrammarRenderer grammar={grammar} onAction={handleAction} />
           </>
         )}
       </div>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
