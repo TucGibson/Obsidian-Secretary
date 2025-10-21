@@ -117,7 +117,7 @@ body {
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     background: var(--bg-surface);
-    color: var(--text-success, var(--text-mid));
+    color: #5a7a5a;
 }
 
 /* Chat messages area */
@@ -313,41 +313,41 @@ body {
 }
 
 .status-success {
-    background: var(--background-modifier-success, var(--bg-surface));
+    background: #3a4a3a;
 }
 
 .status-success .icon {
-    color: var(--text-success, var(--text-mid));
+    color: #5a7a5a;
 }
 
 .status-error {
-    background: var(--background-modifier-error, var(--bg-surface));
+    background: #4a3a3a;
 }
 
 .status-error .icon {
-    color: var(--text-error, var(--text-mid));
+    color: #7a5a5a;
 }
 
 .status-pending {
-    background: var(--background-modifier-warning, var(--bg-surface));
+    background: #4a4a3a;
 }
 
 .status-pending .icon {
-    color: var(--text-warning, var(--text-mid));
+    color: #7a7a5a;
 }
 
 .status-info {
-    background: var(--background-modifier-info, var(--bg-surface));
+    background: #3a3a4a;
 }
 
 .status-info .icon {
-    color: var(--text-accent, var(--text-mid));
+    color: #5a5a7a;
 }
 
 .spinner {
     width: 14px;
     height: 14px;
-    border: 1px solid var(--bg-surface);
+    border: 1px solid #222;
     border-top-color: var(--icon-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -501,5 +501,5 @@ body {
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: var(--bg-hover);
+    background: #2a2a2a;
 }
