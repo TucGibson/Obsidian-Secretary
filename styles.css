@@ -1,8 +1,6 @@
 /* Obsidian Plugin UI - Integrates with Obsidian Theme */
 
-* {
-    margin: 0;
-    padding: 0;
+.chat-view * {
     box-sizing: border-box;
 }
 
@@ -207,9 +205,12 @@ body {
 .justify-center { justify-content: center; }
 .justify-end { justify-content: end; }
 
-.grid-border {
-    border: 1px solid var(--border) !important;
-    border-radius: var(--radius-md);
+/* Grammar UI borders - force visible */
+.chat-view .grid-border,
+.agent-response .grid-border,
+.grid.grid-border {
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: var(--radius-md) !important;
 }
 
 .grid-bg {
@@ -236,36 +237,49 @@ body {
 .icon-dim { color: var(--icon-dim); }
 .icon-bright { color: var(--icon-bright); }
 
-/* Grammar UI Buttons - Override Obsidian defaults */
-.agent-response .btn,
-.btn {
+/* Grammar UI Buttons - FORCE override Obsidian defaults */
+.chat-view button.btn,
+.agent-response button.btn,
+button.btn.btn,
+.chat-view .btn,
+.agent-response .btn {
     background: none !important;
+    background-color: transparent !important;
     border: none !important;
-    font-size: var(--font-sm);
-    cursor: pointer;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    transition: color var(--transition);
-    color: var(--text-dim);
+    border-width: 0 !important;
+    font-size: var(--font-sm) !important;
+    cursor: pointer !important;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+    border-radius: var(--radius-sm) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--spacing-sm) !important;
+    transition: color var(--transition) !important;
+    color: var(--text-dim) !important;
     box-shadow: none !important;
+    outline: none !important;
 }
 
-.agent-response .btn:hover,
-.btn:hover {
+.chat-view button.btn:hover,
+.agent-response button.btn:hover,
+button.btn.btn:hover,
+.chat-view .btn:hover,
+.agent-response .btn:hover {
     background: none !important;
-    color: var(--text-mid);
+    background-color: transparent !important;
+    color: var(--text-mid) !important;
     box-shadow: none !important;
+    border: none !important;
 }
 
-.btn-primary {
-    color: var(--text-mid);
+.chat-view .btn-primary,
+.agent-response .btn-primary {
+    color: var(--text-mid) !important;
 }
 
-.btn-primary:hover {
-    color: var(--text-bright);
+.chat-view .btn-primary:hover,
+.agent-response .btn-primary:hover {
+    color: var(--text-bright) !important;
 }
 
 .divider-h {
@@ -506,4 +520,29 @@ body {
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
     background: #2a2a2a;
+}
+
+/* Settings demo area - ensure styles work there too */
+.setting-item-description .grid-border {
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+.setting-item-description button.btn,
+.setting-item-description .btn {
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-width: 0 !important;
+    box-shadow: none !important;
+    color: var(--text-dim) !important;
+}
+
+.setting-item-description button.btn:hover,
+.setting-item-description .btn:hover {
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--text-mid) !important;
+    box-shadow: none !important;
+    border: none !important;
 }

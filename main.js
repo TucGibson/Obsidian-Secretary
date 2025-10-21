@@ -2173,7 +2173,7 @@ class ChatView extends ItemView {
     headerLeft.createEl('strong', { text: 'AI Agent - Semantic RAG' });
     headerLeft.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.21'
+      text: 'v2.0.22'
     });
 
     // Right side - buttons
@@ -2215,7 +2215,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.21\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.22\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
