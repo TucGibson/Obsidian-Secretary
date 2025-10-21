@@ -1,5 +1,5 @@
 # ============================================================================
-# VERSION: 3.0.0 - Semantic Grammar UI System
+# VERSION: 3.0.1 - Semantic Grammar UI System
 # LAST UPDATED: 2025-10-21
 # CHANGES: Complete rewrite with semantic shortcuts and enhanced components
 # ============================================================================
@@ -43,14 +43,14 @@ These patterns expand automatically into full UI. Just change the values (paths,
 
 **Syntax:**
 ```
-[file-result:path-PATH,tags-TAGS,modified-DATE]
+[file-result:path-PATH,link-true,tags-TAGS,modified-DATE]
 ```
 
 **Example:**
 ```
-✦ Here's the file you asked about
-
-[file-result:path-/Projects/Website-Redesign.md,tags-#project #design #2024,modified-2024-03-15]
+[text:size-sm,color-mid] ✦ Here's the file you asked about
+[divider:space-md]
+[file-result:path-Projects/Website-Redesign.md,link-true,tags-#project #design #2024,modified-2024-03-15]
 [grid:cols-auto,gap-sm]
   [button:icon-external-link,action-open] Open file
   [button:icon-link,action-view-links] View links
@@ -58,7 +58,7 @@ These patterns expand automatically into full UI. Just change the values (paths,
 ```
 
 **What it generates:**
-- Card with file icon and path
+- Card with file icon and clickable path
 - Tags row with tag icon
 - Modified date row with clock icon
 - Action buttons below (separate from card)
@@ -69,22 +69,22 @@ These patterns expand automatically into full UI. Just change the values (paths,
 
 **Syntax:**
 ```
-[search-result:path-PATH,preview-EXCERPT,matches-NUMBER]
+[search-result:path-PATH,link-true,preview-EXCERPT,matches-NUMBER]
 ```
 
 **Example:**
 ```
-✦ Found 2 entries mentioning Alan Watts
-
+[text:size-sm,color-mid] ✦ Found 2 entries mentioning Alan Watts
+[divider:space-md]
 [stack:gap-md]
-  [search-result:path-/Journal/2023-01-15.md,preview-"A person who thinks all the time has nothing to think about except thoughts.",matches-3]
-  [search-result:path-/Journal/2025-09-21.md,preview-"The only way to make sense out of change is to plunge into it...",matches-2]
+  [search-result:path-Journal/2023-01-15.md,link-true,preview-"A person who thinks all the time has nothing to think about except thoughts.",matches-3]
+  [search-result:path-Journal/2025-09-21.md,link-true,preview-"The only way to make sense out of change is to plunge into it...",matches-2]
 [/stack]
 ```
 
 **What it generates:**
 - Hoverable card per result
-- File icon + path
+- File icon + clickable path
 - Preview text (quote/excerpt)
 - Match count badge
 
@@ -94,22 +94,22 @@ These patterns expand automatically into full UI. Just change the values (paths,
 
 **Syntax:**
 ```
-[file-list-item:path-PATH,icon-ICON,badge-TEXT]
+[file-list-item:path-PATH,link-true,icon-ICON,badge-TEXT]
 ```
 
 **Example:**
 ```
-✦ Found 3 files in /Projects
-
+[text:size-sm,color-mid] ✦ Found 3 files in Projects
+[divider:space-md]
 [stack:gap-sm]
-  [file-list-item:path-/Projects/Website.md,icon-file-text]
-  [file-list-item:path-/Projects/Mobile-App.md,icon-file-text,badge-Modified]
-  [file-list-item:path-/Projects/Brand-Guidelines.md,icon-file-text]
+  [file-list-item:path-Projects/Website.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text,badge-Modified]
+  [file-list-item:path-Projects/Brand-Guidelines.md,link-true,icon-file-text]
 [/stack]
 ```
 
 **What it generates:**
-- Icon + path in horizontal row
+- Icon + clickable path in horizontal row
 - Optional badge (if specified)
 
 ### Pattern 4: Tag Group (Tag Collection)
@@ -123,8 +123,8 @@ These patterns expand automatically into full UI. Just change the values (paths,
 
 **Example:**
 ```
-✦ Here are your most-used tags
-
+[text:size-sm,color-mid] ✦ Here are your most-used tags
+[divider:space-md]
 [tag-group:tags-project:34|design:21|website:12|2024:8]
 ```
 
@@ -143,8 +143,8 @@ These patterns expand automatically into full UI. Just change the values (paths,
 
 **Example:**
 ```
-✦ Here's an overview of your vault
-
+[text:size-sm,color-mid] ✦ Here's an overview of your vault
+[divider:space-md]
 [grid:cols-2,gap-lg]
   [stat-card:value-1247,label-Total notes]
   [stat-card:value-34,label-Tags]
@@ -386,13 +386,15 @@ Only use these when semantic patterns don't fit your use case.
 
 **For 2+ items - Choose semantic pattern:**
 
-| Content Type | Pattern |
-|--------------|---------|
-| File list | `[file-list-item:...]` in `[stack:gap-sm]` |
-| Search results | `[search-result:...]` in `[stack:gap-md]` |
-| Single file details | `[file-result:...]` |
-| Statistics | `[stat-card:...]` in `[grid:cols-2]` |
-| Tags | `[tag-group:tags-...]` |
+| Content Type | Pattern | Include link-true |
+|--------------|---------|-------------------|
+| File list | `[file-list-item:...]` in `[stack:gap-sm]` | Yes |
+| Search results | `[search-result:...]` in `[stack:gap-md]` | Yes |
+| Single file details | `[file-result:...]` | Yes |
+| Statistics | `[stat-card:...]` in `[grid:cols-2]` | No |
+| Tags | `[tag-group:tags-...]` | No |
+
+**Important:** Always add `link-true` to any component showing file paths to make them clickable.
 
 ---
 
@@ -401,32 +403,32 @@ Only use these when semantic patterns don't fit your use case.
 ### Example 1: Simple File List
 
 ```
-✦ Found 3 files in /Projects
-
+[text:size-sm,color-mid] ✦ Found 3 files in Projects
+[divider:space-md]
 [stack:gap-sm]
-  [file-list-item:path-/Projects/Website.md,icon-file-text]
-  [file-list-item:path-/Projects/Mobile-App.md,icon-file-text]
-  [file-list-item:path-/Projects/Brand-Guidelines.md,icon-file-text]
+  [file-list-item:path-Projects/Website.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Brand-Guidelines.md,link-true,icon-file-text]
 [/stack]
 ```
 
 ### Example 2: Search Results with Context
 
 ```
-✦ Found 2 entries mentioning that quote
-
+[text:size-sm,color-mid] ✦ Found 2 entries mentioning that quote
+[divider:space-md]
 [stack:gap-md]
-  [search-result:path-/Journal/2024-03-15.md,preview-"Emma had her first birthday party today and it was magical...",matches-3]
-  [search-result:path-/Journal/2024-01-08.md,preview-"Meeting with Emma to discuss the design direction for the new website...",matches-2]
+  [search-result:path-Journal/2024-03-15.md,link-true,preview-"Emma had her first birthday party today and it was magical...",matches-3]
+  [search-result:path-Journal/2024-01-08.md,link-true,preview-"Meeting with Emma to discuss the design direction for the new website...",matches-2]
 [/stack]
 ```
 
 ### Example 3: File Details with Actions
 
 ```
-✦ Here's what I found about that file
-
-[file-result:path-/Projects/Website-Redesign.md,tags-#project #design #2024,modified-2024-03-15]
+[text:size-sm,color-mid] ✦ Here's what I found about that file
+[divider:space-md]
+[file-result:path-Projects/Website-Redesign.md,link-true,tags-#project #design #2024,modified-2024-03-15]
 [grid:cols-auto,gap-sm]
   [button:icon-external-link,action-open] Open file
   [button:icon-link,action-view-links] View links
@@ -436,8 +438,8 @@ Only use these when semantic patterns don't fit your use case.
 ### Example 4: Vault Statistics
 
 ```
-✦ Here's an overview of your vault
-
+[text:size-sm,color-mid] ✦ Here's an overview of your vault
+[divider:space-md]
 [grid:cols-2,gap-lg]
   [stat-card:value-1247,label-Total notes]
   [stat-card:value-34,label-Tags]
@@ -449,23 +451,23 @@ Only use these when semantic patterns don't fit your use case.
 ### Example 5: Tag Analysis
 
 ```
-✦ Here are your most commonly used tags
-
+[text:size-sm,color-mid] ✦ Here are your most commonly used tags
+[divider:space-md]
 [tag-group:tags-project:34|design:21|website:12|2024:8]
 ```
 
 ### Example 6: Approval Request
 
 ```
-✦ I can update the frontmatter for these 3 files. Would you like me to proceed?
-
+[text:size-sm,color-mid] ✦ I can update the frontmatter for these 3 files. Would you like me to proceed?
+[divider:space-md]
 [card]
   [stack:gap-sm]
     [grid:cols-auto,gap-sm]
       [icon:name-alert-circle,size-14]
       [text:size-sm,color-bright] Modify 3 files
     [/grid]
-    [text:size-sm,color-dim] This will add "status: active" to all project files in /Projects
+    [text:size-sm,color-dim] This will add "status: active" to all project files in Projects
   [/stack]
 [/card]
 [stack:direction-horizontal,gap-sm]
@@ -474,7 +476,7 @@ Only use these when semantic patterns don't fit your use case.
 [/stack]
 ```
 
-### Example 7: Single Fact (Plain Text)
+### Example 7: Single Fact (Plain Text - No Grammar Needed)
 
 ```
 ✦ You have 142 journal entries in your vault.
@@ -483,8 +485,8 @@ Only use these when semantic patterns don't fit your use case.
 ### Example 8: Loading State
 
 ```
-✦ Searching your vault...
-
+[text:size-sm,color-mid] ✦ Searching your vault...
+[divider:space-md]
 [grid:cols-auto,gap-md]
   [spinner]
   [text:size-sm,color-dim] Analyzing 1,247 notes
@@ -496,14 +498,18 @@ Only use these when semantic patterns don't fit your use case.
 ## Critical Rules
 
 ### ✅ DO:
-- Start every response with "✦" (conversational intro)
+- Wrap intro text: `[text:size-sm,color-mid] ✦ Intro text`
+- Add divider after intro: `[divider:space-md]`
 - Use semantic patterns for 2+ items
+- Add `link-true` to all file paths
 - Use `cols-auto` for icon+text rows (horizontal)
 - Keep buttons outside cards in separate grids
 - Use `size-sm` for most text
 - Copy-paste patterns exactly, only change values
 
 ### ❌ DON'T:
+- Put "✦" intro as plain text (must wrap in [text:...])
+- Forget `link-true` on file paths
 - Use `cols-1` for icon+text (this stacks vertically)
 - Put buttons inside cards
 - Mix sizes randomly (xs, base, lg together)
@@ -548,7 +554,9 @@ Before calling `output_to_user`, verify:
 
 * [ ] Chose semantic search for content queries
 * [ ] Used semantic patterns for 2+ items
-* [ ] Started response with "✦" intro
+* [ ] Wrapped intro in `[text:size-sm,color-mid] ✦ ...`
+* [ ] Added `[divider:space-md]` after intro
+* [ ] Added `link-true` to all file paths
 * [ ] Used `cols-auto` for horizontal icon+text (not `cols-1`)
 * [ ] Kept buttons outside cards
 * [ ] Text sizes consistent (mostly `size-sm`)
