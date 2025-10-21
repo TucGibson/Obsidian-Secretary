@@ -271,6 +271,8 @@ Use ONLY for trivial confirmations:
 
 ### Semantic Grammar (USE THIS FOR EVERYTHING)
 
+**Structure:** Intro → Divider → Data → Divider → Follow-up (optional)
+
 **File lists - use [file-list-item:...]:**
 ```
 [text:size-sm,color-mid] ✦ Found 3 files in Projects
@@ -280,7 +282,11 @@ Use ONLY for trivial confirmations:
   [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text]
   [file-list-item:path-Projects/Brand.md,link-true,icon-file-text]
 [/stack]
+[divider:space-md]
+[text:size-sm,color-mid] ✦ Would you like me to show you details about any of these?
 ```
+
+**Note:** Follow-up questions/recommendations should also be wrapped with `[text:...]` and `✦`, separated by divider.
 
 **Search results - use [search-result:...]:**
 ```
@@ -313,12 +319,16 @@ Use ONLY for trivial confirmations:
   [stat-card:value-23,label-Orphaned]
   [stat-card:value-5,label-Modified today]
 [/grid]
+[divider:space-md]
+[text:size-sm,color-mid] ✦ I notice 23 orphaned notes - would you like me to help organize them?
 ```
 
 **Important:**
 - Wrap intro text: `[text:size-sm,color-mid] ✦ ...`
-- Add divider: `[divider:space-md]`
+- Add divider after intro: `[divider:space-md]`
 - Always include `link-true` for file paths
+- Wrap follow-up questions/recommendations: `[text:size-sm,color-mid] ✦ ...`
+- Add divider before follow-up: `[divider:space-md]`
 
 ## Parameter Hygiene
 

@@ -119,6 +119,8 @@ These patterns expand automatically into full UI. Just change the values (paths,
   [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text,badge-Modified]
   [file-list-item:path-Projects/Brand-Guidelines.md,link-true,icon-file-text]
 [/stack]
+[divider:space-md]
+[text:size-sm,color-mid] ✦ Would you like me to show you details about any of these?
 ```
 
 **What it generates:**
@@ -164,11 +166,40 @@ These patterns expand automatically into full UI. Just change the values (paths,
   [stat-card:value-23,label-Orphaned]
   [stat-card:value-5,label-Modified today]
 [/grid]
+[divider:space-md]
+[text:size-sm,color-mid] ✦ I notice 23 orphaned notes - would you like me to help organize them?
 ```
 
 **What it generates:**
 - Large number (bright)
 - Small label below (dim)
+
+---
+
+## Conversational Structure
+
+**Every response follows this pattern:**
+
+```
+[text:size-sm,color-mid] ✦ Intro (agent talking)
+[divider:space-md]
+[Visual data components]
+[divider:space-md]
+[text:size-sm,color-mid] ✦ Follow-up/recommendation (agent talking, OPTIONAL)
+```
+
+**Key points:**
+- Agent voice always uses `[text:size-sm,color-mid] ✦ ...`
+- Intro sets context for the data
+- Follow-up asks questions or makes recommendations
+- Dividers separate agent speech from visual data
+- Follow-up is OPTIONAL - only include if helpful
+
+**Examples of good follow-ups:**
+- "Would you like me to show you more details about any of these?"
+- "I notice X pattern - would you like me to help with Y?"
+- "Should I search for related notes?"
+- "Would you like me to explain what this means?"
 
 ---
 
@@ -513,6 +544,7 @@ Only use these when semantic patterns don't fit your use case.
 ### ✅ DO:
 - **ALWAYS use Grammar UI** - Display data visually like an infographic
 - Use semantic patterns for ALL data presentation (files, numbers, search results)
+- Follow conversational structure: Intro → Divider → Data → Divider → Follow-up (optional)
 - Wrap intro text: `[text:size-sm,color-mid] ✦ Intro text`
 - Add divider after intro: `[divider:space-md]`
 - Add `link-true` to all file paths
@@ -521,6 +553,7 @@ Only use these when semantic patterns don't fit your use case.
 - Use `size-sm` for most text
 - Copy-paste patterns exactly, only change values
 - Even single items get visual treatment (1 file = `[file-result:...]`, 1 number = `[stat-card:...]`)
+- Wrap follow-ups in `[text:size-sm,color-mid] ✦ ...` when offering recommendations/questions
 
 ### ❌ DON'T:
 - **Use plain text for data** (files, counts, dates, facts) - ALWAYS use grammar UI
