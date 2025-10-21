@@ -192,6 +192,19 @@ body {
 .text-medium { font-weight: 500; }
 .text-mono { font-family: monospace; }
 
+/* Clickable text links */
+.text[data-link="true"] {
+    cursor: pointer;
+    color: var(--interactive-accent);
+    text-decoration: none;
+    transition: all var(--transition);
+}
+
+.text[data-link="true"]:hover {
+    color: var(--interactive-accent-hover);
+    text-decoration: underline;
+}
+
 .grid {
     display: grid;
     transition: all var(--transition);

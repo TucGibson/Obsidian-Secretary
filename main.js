@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.17 - EXACT COPY FROM CHAT UI TEMPLATE
+// VERSION: 3.0.1 - Semantic Grammar UI System
 // LAST UPDATED: 2025-10-21
-// DO NOT MODIFY - Copied exactly from template
+// CHANGES: Enhanced semantic patterns with link functionality
 // ============================================================================
 
 ///// PART 0 START - GRAMMAR UI SYSTEM ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,11 +45,12 @@ function expandSemanticPattern(pattern) {
 
     switch (type) {
         case 'file-result':
+            const linkAttr1 = props.link === 'true' ? ',link-true' : '';
             return `[card]
   [stack:gap-sm]
     [grid:cols-auto,gap-sm]
       [icon:name-file-text,size-14,color-dim]
-      [text:size-sm,color-bright] ${props.path || 'Untitled'}
+      [text:size-sm,color-bright${linkAttr1}] ${props.path || 'Untitled'}
     [/grid]
     ${props.tags ? `[grid:cols-auto,gap-sm]
       [icon:name-tag,size-12,color-dim]
@@ -63,11 +64,12 @@ function expandSemanticPattern(pattern) {
 [/card]`;
 
         case 'search-result':
+            const linkAttr2 = props.link === 'true' ? ',link-true' : '';
             return `[card:hover-true]
   [stack:gap-sm]
     [grid:cols-auto,gap-sm]
       [icon:name-file-text,size-12,color-dim]
-      [text:size-sm,color-mid] ${props.path || 'Untitled'}
+      [text:size-sm,color-mid${linkAttr2}] ${props.path || 'Untitled'}
     [/grid]
     ${props.preview ? `[text:size-sm,color-dim] ${props.preview}` : ''}
     ${props.matches ? `[badge:variant-accent] ${props.matches} matches` : ''}
@@ -99,9 +101,10 @@ function expandSemanticPattern(pattern) {
 [/card]`;
 
         case 'file-list-item':
+            const linkAttr3 = props.link === 'true' ? ',link-true' : '';
             return `[grid:cols-auto,gap-sm,align-center]
   [icon:name-${props.icon || 'file'},size-12,color-dim]
-  [text:size-sm,color-mid] ${props.path || 'Untitled'}
+  [text:size-sm,color-mid${linkAttr3}] ${props.path || 'Untitled'}
   ${props.badge ? `[badge] ${props.badge}` : ''}
 [/grid]`;
 
@@ -199,11 +202,27 @@ function createText(props, content) {
     const color = props.color || 'mid';
     const weight = props.weight;
     const mono = props.mono;
+    const link = props.link === 'true';
 
     el.classList.add(`text-${size}`);
     el.classList.add(`text-${color}`);
     if (weight === 'medium') el.classList.add('text-medium');
     if (mono) el.classList.add('text-mono');
+
+    if (link) {
+        el.setAttribute('data-link', 'true');
+        el.style.cursor = 'pointer';
+        el.style.color = 'var(--interactive-accent)';
+        el.style.textDecoration = 'none';
+
+        // Handle file path click - convert to wikilink format and trigger Obsidian open
+        el.addEventListener('click', () => {
+            const filePath = content.trim();
+            console.log('Clicked file:', filePath);
+            // TODO: Integrate with Obsidian's file opening API
+            // For now, just log the click
+        });
+    }
 
     el.textContent = content;
     return el;
@@ -2354,7 +2373,7 @@ class ChatView extends ItemView {
     headerLeft.createEl('strong', { text: 'AI Agent - Semantic RAG' });
     headerLeft.createEl('span', {
       cls: 'version-tag',
-      text: 'v3.0.0'
+      text: 'v3.0.1'
     });
 
     // Right side - buttons
