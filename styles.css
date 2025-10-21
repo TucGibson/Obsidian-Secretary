@@ -7,10 +7,11 @@
 }
 
 :root {
-    /* Main UI: Use Obsidian theme colors for integration */
+    /* Use Obsidian theme colors throughout */
     --bg-base: var(--background-primary);
     --bg-surface: var(--background-secondary);
     --bg-hover: var(--background-modifier-hover);
+    --border: var(--background-modifier-border);
     --text-bright: var(--text-normal);
     --text-mid: var(--text-muted);
     --text-dim: var(--text-faint);
@@ -19,10 +20,6 @@
     --icon-dim: var(--icon-color-focused);
     --icon-bright: var(--icon-color-hover);
     --accent: var(--interactive-accent);
-
-    /* Grammar UI: Use explicit colors so components stand out */
-    --border: #1a1a1a;
-    --grammar-bg: #0a0a0a;
 
     --spacing-xs: 4px;
     --spacing-sm: 6px;
@@ -216,7 +213,7 @@ body {
 }
 
 .grid-bg {
-    background: var(--grammar-bg);
+    background: var(--bg-hover);
 }
 
 .padding-xs { padding: var(--spacing-xs); }
@@ -475,12 +472,11 @@ body {
     color: var(--text-dim);
     padding: 6px 10px;
     border-radius: var(--radius-sm);
-    transition: background var(--transition), color var(--transition);
+    transition: color var(--transition);
     font-family: inherit;
 }
 
 .toolbar-btn:hover {
-    background: var(--bg-hover);
     color: var(--text-mid);
 }
 
