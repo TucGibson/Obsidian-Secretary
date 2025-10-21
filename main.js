@@ -1905,7 +1905,7 @@ class ChatView extends ItemView {
     inputContainer.style.background = 'var(--background-primary)';
     inputContainer.style.borderTop = '1px solid var(--background-modifier-border)';
 
-    // Main input wrapper - single line with inline send button
+    // Input wrapper - exactly like example
     const inputWrapper = inputContainer.createDiv({ cls: 'input-wrapper' });
     inputWrapper.style.display = 'flex';
     inputWrapper.style.alignItems = 'center';
@@ -1939,7 +1939,6 @@ class ChatView extends ItemView {
     this.sendBtn.style.color = 'var(--text-muted)';
     this.sendBtn.style.transition = 'color 0.2s';
 
-    // Send icon (paper plane)
     this.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
       <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
     </svg>`;
@@ -1951,17 +1950,15 @@ class ChatView extends ItemView {
       this.sendBtn.style.color = 'var(--text-muted)';
     };
 
-    // Toolbar
+    // Toolbar - exactly like example
     const toolbar = inputContainer.createDiv({ cls: 'toolbar' });
     toolbar.style.display = 'flex';
     toolbar.style.alignItems = 'center';
     toolbar.style.padding = '12px 20px';
     toolbar.style.gap = '16px';
 
-    // Reasoning effort toolbar button
-    const reasoningBtn = toolbar.createEl('button', {
-      cls: 'toolbar-btn'
-    });
+    // Reasoning button - follows exact toolbar-btn pattern from example
+    const reasoningBtn = toolbar.createEl('button', { cls: 'toolbar-btn' });
     reasoningBtn.style.background = 'none';
     reasoningBtn.style.border = 'none';
     reasoningBtn.style.cursor = 'pointer';
@@ -1973,17 +1970,18 @@ class ChatView extends ItemView {
     reasoningBtn.style.padding = '6px 10px';
     reasoningBtn.style.borderRadius = '6px';
     reasoningBtn.style.transition = 'background 0.2s, color 0.2s';
-    reasoningBtn.style.fontFamily = 'var(--font-text)';
+    reasoningBtn.style.fontFamily = 'inherit';
 
-    // Brain icon
-    reasoningBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+    const reasoningIcon = reasoningBtn.createEl('span');
+    reasoningIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
       <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
       <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
     </svg>`;
 
-    this.reasoningSelect = reasoningBtn.createEl('select', {
-      cls: 'reasoning-select'
-    });
+    const reasoningText = reasoningBtn.createEl('span');
+    reasoningText.textContent = 'Reasoning: ';
+
+    this.reasoningSelect = reasoningBtn.createEl('select', { cls: 'reasoning-select' });
     this.reasoningSelect.style.background = 'none';
     this.reasoningSelect.style.border = 'none';
     this.reasoningSelect.style.outline = 'none';
@@ -1991,10 +1989,9 @@ class ChatView extends ItemView {
     this.reasoningSelect.style.fontSize = '14px';
     this.reasoningSelect.style.color = 'inherit';
     this.reasoningSelect.style.fontFamily = 'inherit';
-    this.reasoningSelect.style.appearance = 'none';
-    this.reasoningSelect.style.paddingRight = '0';
+    this.reasoningSelect.style.padding = '0';
+    this.reasoningSelect.style.margin = '0';
 
-    // Add options
     const options = [
       { value: 'minimal', label: 'Minimal' },
       { value: 'low', label: 'Low' },
