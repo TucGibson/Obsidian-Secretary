@@ -7,11 +7,10 @@
 }
 
 :root {
-    /* Use Obsidian's theme colors - NO fallbacks to ensure theme integration */
+    /* Main UI: Use Obsidian theme colors for integration */
     --bg-base: var(--background-primary);
     --bg-surface: var(--background-secondary);
     --bg-hover: var(--background-modifier-hover);
-    --border: var(--background-modifier-border);
     --text-bright: var(--text-normal);
     --text-mid: var(--text-muted);
     --text-dim: var(--text-faint);
@@ -20,6 +19,10 @@
     --icon-dim: var(--icon-color-focused);
     --icon-bright: var(--icon-color-hover);
     --accent: var(--interactive-accent);
+
+    /* Grammar UI: Use explicit colors so components stand out */
+    --border: #1a1a1a;
+    --grammar-bg: #0a0a0a;
 
     --spacing-xs: 4px;
     --spacing-sm: 6px;
@@ -213,7 +216,7 @@ body {
 }
 
 .grid-bg {
-    background: var(--bg-surface);
+    background: var(--grammar-bg);
 }
 
 .padding-xs { padding: var(--spacing-xs); }
