@@ -1,0 +1,725 @@
+import React, { useState } from 'react';
+import * as Icons from 'lucide-react';
+
+// Design tokens - EXACT from document
+const tokens = {
+  colors: {
+    bgBase: 'var(--background-primary, #000)',
+    bgSurface: 'var(--background-secondary, #0a0a0a)',
+    bgHover: 'var(--background-modifier-hover, #0f0f0f)',
+    border: 'var(--background-modifier-border, #1a1a1a)',
+    textBright: 'var(--text-normal, #ccc)',
+    textMid: 'var(--text-muted, #999)',
+    textDim: 'var(--text-faint, #666)',
+    textMuted: 'var(--text-faint, #555)',
+    iconPrimary: 'var(--icon-color, #666)',
+    iconDim: 'var(--icon-color-focused, #555)',
+    iconBright: 'var(--icon-color-hover, #888)',
+  },
+  spacing: {
+    xs: '4px',
+    sm: '6px',
+    md: '8px',
+    lg: '12px',
+    xl: '16px',
+    '2xl': '24px',
+    '3xl': '32px',
+  },
+  fontSize: {
+    xs: '12px',
+    sm: '13px',
+    base: '14px',
+    lg: '16px',
+    xl: '18px',
+  },
+  radius: {
+    sm: '3px',
+    md: '4px',
+  },
+  transition: '150ms ease',
+};
+
+// Text Component - EXACT from document
+export const Text = ({ 
+  size = 'base', 
+  color = 'mid', 
+  weight = 'normal',
+  mono = false,
+  children,
+  style = {}
+}) => {
+  const colorMap = {
+    bright: tokens.colors.textBright,
+    mid: tokens.colors.textMid,
+    dim: tokens.colors.textDim,
+    muted: tokens.colors.textMuted,
+  };
+
+  return (
+    <div style={{
+      fontSize: tokens.fontSize[size],
+      color: colorMap[color],
+      fontWeight: weight === 'medium' ? 500 : 400,
+      fontFamily: mono ? 'monospace' : 'inherit',
+      lineHeight: '1.5',
+      ...style
+    }}>
+      {children}
+    </div>
+  );
+};
+
+// Icon Component - EXACT from document
+export const Icon = ({ name, size = 14, color = 'primary' }) => {
+  if (!name) return null;
+  
+  const pascalName = name.split('-').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+  ).join('');
+  
+  const IconComponent = Icons[pascalName];
+  
+  if (!IconComponent) {
+    console.warn(`Icon "${name}" (${pascalName}) not found in lucide-react`);
+    return null;
+  }
+
+  const colorMap = {
+    primary: tokens.colors.iconPrimary,
+    dim: tokens.colors.iconDim,
+    bright: tokens.colors.iconBright,
+  };
+
+  return <IconComponent size={size} color={colorMap[color]} style={{ flexShrink: 0, marginTop: '2px' }} />;
+};
+
+// Grid Component - EXACT from document
+export const Grid = ({ 
+  cols = '1',
+  gap = 'md',
+  min,
+  align = 'center',
+  justify = 'start',
+  border = false,
+  background = false,
+  padding,
+  hover = false,
+  collapsible = false,
+  defaultExpanded = false,
+  previewLines = 2,
+  children,
+  style = {}
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  const childArray = React.Children.toArray(children);
+  const visibleChildren = collapsible && !isExpanded 
+    ? childArray.slice(0, previewLines) 
+    : childArray;
+  const hasMore = collapsible && childArray.length > previewLines;
+
+  let gridCols;
+  if (cols === 'auto') {
+    gridCols = 'auto';
+  } else if (cols === 'auto-fit') {
+    const minWidth = min || '120px';
+    gridCols = `repeat(auto-fit, minmax(${minWidth}, 1fr))`;
+  } else {
+    gridCols = cols === '1' ? '1fr' : `repeat(${cols}, 1fr)`;
+  }
+
+  const baseStyle = {
+    display: 'grid',
+    gridTemplateColumns: gridCols,
+    gridAutoFlow: cols === 'auto' ? 'column' : 'row',
+    gap: tokens.spacing[gap],
+    alignItems: align,
+    justifyContent: justify,
+    ...(border && { border: `1px solid ${tokens.colors.border}` }),
+    ...(background && { background: tokens.colors.bgSurface }),
+    ...(padding && { padding: tokens.spacing[padding] }),
+    ...(border && { borderRadius: tokens.radius.md }),
+    ...(hover && isHovered && { background: tokens.colors.bgHover }),
+    ...(hover && { cursor: 'pointer' }),
+    transition: `all ${tokens.transition}`,
+    ...style
+  };
+
+  const content = (
+    <>
+      {collapsible ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', gridColumn: '1 / -1' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: tokens.spacing[gap] }}>
+            {visibleChildren}
+          </div>
+          <Icons.ChevronRight 
+            size={12} 
+            color={tokens.colors.iconDim}
+            style={{
+              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: `transform ${tokens.transition}`,
+              marginTop: '2px',
+              flexShrink: 0
+            }}
+          />
+        </div>
+      ) : (
+        visibleChildren
+      )}
+      {collapsible && isExpanded && hasMore && (
+        <>
+          <div style={{ 
+            gridColumn: '1 / -1',
+            height: '1px',
+            background: tokens.colors.border,
+            margin: `${tokens.spacing.md} 0`
+          }} />
+          {childArray.slice(previewLines)}
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <div 
+      style={baseStyle}
+      onMouseEnter={() => hover && setIsHovered(true)}
+      onMouseLeave={() => hover && setIsHovered(false)}
+      onClick={() => collapsible && setIsExpanded(!isExpanded)}
+    >
+      {content}
+    </div>
+  );
+};
+
+// Button Component - EXACT from document
+export const Button = ({ icon, primary = false, onClick, children }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        background: isHovered ? tokens.colors.bgHover : 'none',
+        border: 'none',
+        color: isHovered ? (primary ? tokens.colors.textBright : tokens.colors.textMid) : (primary ? tokens.colors.textMid : tokens.colors.textDim),
+        fontSize: tokens.fontSize.sm,
+        cursor: 'pointer',
+        padding: `${tokens.spacing.sm} ${tokens.spacing.md}`,
+        borderRadius: tokens.radius.sm,
+        display: 'flex',
+        alignItems: 'center',
+        gap: tokens.spacing.sm,
+        transition: `all ${tokens.transition}`,
+      }}
+    >
+      {icon && <Icon name={icon} size={12} />}
+      <span>{children}</span>
+    </button>
+  );
+};
+
+// Divider Component - EXACT from document
+export const Divider = ({ direction = 'h', space = 'lg' }) => {
+  const isHorizontal = direction === 'h';
+  
+  return (
+    <div style={{
+      ...(isHorizontal ? {
+        height: '1px',
+        width: '100%',
+        margin: `${tokens.spacing[space]} 0`,
+        gridColumn: '1 / -1'
+      } : {
+        width: '1px',
+        height: '100%',
+        margin: `0 ${tokens.spacing[space]}`
+      }),
+      background: tokens.colors.border,
+    }} />
+  );
+};
+
+// ListItem Component - EXACT from document
+export const ListItem = ({ icon, hover = true, onClick, children }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => hover && setIsHovered(true)}
+      onMouseLeave={() => hover && setIsHovered(false)}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: icon ? 'auto 1fr' : '1fr',
+        alignItems: 'start',
+        gap: tokens.spacing.md,
+        padding: `${tokens.spacing.md} 0`,
+        background: isHovered ? tokens.colors.bgHover : 'transparent',
+        ...(isHovered && {
+          paddingLeft: tokens.spacing.md,
+          paddingRight: tokens.spacing.md,
+          marginLeft: `-${tokens.spacing.md}`,
+          marginRight: `-${tokens.spacing.md}`,
+        }),
+        cursor: hover ? 'pointer' : 'default',
+        transition: `all ${tokens.transition}`,
+      }}
+    >
+      {icon && <Icon name={icon} size={12} color="dim" />}
+      <div style={{ minWidth: 0 }}>{children}</div>
+    </div>
+  );
+};
+
+// Status Component - EXACT from document
+export const Status = ({ type = 'info', children }) => {
+  const config = {
+    success: { icon: 'CheckCircle', bg: '#3a4a3a', iconColor: '#5a7a5a' },
+    error: { icon: 'XCircle', bg: '#4a3a3a', iconColor: '#7a5a5a' },
+    pending: { icon: 'Clock', bg: '#4a4a3a', iconColor: '#7a7a5a' },
+    info: { icon: 'AlertCircle', bg: '#3a3a4a', iconColor: '#5a5a7a' },
+  };
+
+  const { icon, bg, iconColor } = config[type];
+  const IconComp = Icons[icon];
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: tokens.spacing.md,
+      padding: `${tokens.spacing.md} ${tokens.spacing.lg}`,
+      background: bg,
+      border: '1px solid rgba(255,255,255,0.05)',
+      borderRadius: tokens.radius.sm,
+    }}>
+      <IconComp size={14} color={iconColor} style={{ flexShrink: 0 }} />
+      <Text size="sm" color="mid">{children}</Text>
+    </div>
+  );
+};
+
+// Spinner Component - EXACT from document
+export const Spinner = () => {
+  return (
+    <div style={{
+      width: '14px',
+      height: '14px',
+      border: '1px solid #222',
+      borderTopColor: tokens.colors.iconPrimary,
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+    }} />
+  );
+};
+
+// Grammar Parser - EXACT from document 6
+export const parseGrammar = (grammar) => {
+  const normalized = grammar
+    .replace(/\]\s*\[/g, ']\n[')
+    .trim();
+    
+  const lines = normalized.split('\n');
+  const elements = [];
+  const stack = [];
+  
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    if (trimmed.startsWith('[/')) {
+      if (stack.length > 0) {
+        const completed = stack.pop();
+        if (stack.length === 0) {
+          elements.push(completed);
+        } else {
+          stack[stack.length - 1].children.push(completed);
+        }
+      }
+      continue;
+    }
+    
+    const tagMatch = trimmed.match(/^\[(\w+)(?::([^\]]+))?\]\s*(.*)/);
+    if (tagMatch) {
+      const [, type, propsStr, contentAfterTag] = tagMatch;
+      const props = {};
+      
+      if (propsStr) {
+        propsStr.split(',').forEach(prop => {
+          const parts = prop.trim().split('-');
+          const key = parts[0];
+          const val = parts.slice(1).join('-') || true;
+          props[key] = val;
+        });
+      }
+      
+      const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
+      
+      const containerTypes = ['grid', 'container'];
+      if (!contentAfterTag && containerTypes.includes(type)) {
+        stack.push(element);
+      } else if (stack.length > 0) {
+        stack[stack.length - 1].children.push(element);
+      } else {
+        elements.push(element);
+      }
+    }
+  }
+  
+  while (stack.length > 0) {
+    const completed = stack.pop();
+    if (stack.length === 0) {
+      elements.push(completed);
+    } else {
+      stack[stack.length - 1].children.push(completed);
+    }
+  }
+  
+  return elements;
+};
+
+// Grammar Renderer - EXACT from document
+export const GrammarRenderer = ({ grammar, onAction }) => {
+  const elements = parseGrammar(grammar);
+  
+  const renderElement = (element, index) => {
+    const { type, props, content, children } = element;
+    
+    switch (type) {
+      case 'text':
+        return <Text key={index} {...props}>{content}</Text>;
+      
+      case 'icon':
+        return <Icon key={index} name={props.name} {...props} />;
+      
+      case 'grid':
+      case 'container':
+        return (
+          <Grid key={index} {...props}>
+            {content && <Text>{content}</Text>}
+            {children.map((child, i) => renderElement(child, i))}
+          </Grid>
+        );
+      
+      case 'button':
+        const handleClick = () => {
+          if (onAction && props.action) {
+            onAction(props.action, props);
+          }
+        };
+        return <Button key={index} {...props} onClick={handleClick}>{content}</Button>;
+      
+      case 'divider':
+        return <Divider key={index} {...props} />;
+      
+      case 'listitem':
+        return (
+          <ListItem key={index} {...props}>
+            {content && <Text size="sm" color="mid">{content}</Text>}
+            {children.map((child, i) => renderElement(child, i))}
+          </ListItem>
+        );
+      
+      case 'status':
+        return <Status key={index} type={props.type}>{content}</Status>;
+      
+      case 'spinner':
+        return <Spinner key={index} />;
+      
+      default:
+        return null;
+    }
+  };
+  
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.md }}>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+      {elements.map((el, i) => renderElement(el, i))}
+    </div>
+  );
+};
+
+// Demo Component with examples
+export default function Demo() {
+  const [activeTab, setActiveTab] = useState('editor');
+  const [grammar, setGrammar] = useState(`[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file-text,size-14,color-dim]
+    [text:size-base,color-bright] /Projects/Website.md
+  [/grid]
+[/grid]`);
+
+  const examples = {
+    singleFile: {
+      name: 'Single File Result',
+      grammar: `[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file-text,size-14,color-dim]
+    [text:size-base,color-bright] /Projects/Website Redesign.md
+  [/grid]
+  [divider:space-md]
+  [grid:cols-1,gap-xs]
+    [grid:cols-auto,gap-sm]
+      [icon:name-tag,size-12,color-dim]
+      [text:size-xs,color-dim] #project #design #2024
+    [/grid]
+    [grid:cols-auto,gap-sm]
+      [icon:name-link,size-12,color-dim]
+      [text:size-xs,color-dim] 3 outgoing, 5 backlinks
+    [/grid]
+    [grid:cols-auto,gap-sm]
+      [icon:name-clock,size-12,color-dim]
+      [text:size-xs,color-dim] Modified: 2024-03-15
+    [/grid]
+  [/grid]
+[/grid]
+[grid:cols-auto,gap-sm]
+  [button:icon-external-link] Open file
+  [button:icon-link] View links
+[/grid]`
+    },
+    fileList: {
+      name: 'File List',
+      grammar: `[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [text:size-base,color-bright] 12 files found
+  [divider:space-sm]
+  [grid:cols-1,gap-md]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file,size-12,color-dim]
+      [text:size-sm,color-mid] /Projects/Website.md
+    [/grid]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file,size-12,color-dim]
+      [text:size-sm,color-mid] /Projects/Mobile App.md
+    [/grid]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file,size-12,color-dim]
+      [text:size-sm,color-mid] /Projects/Brand Guidelines.md
+    [/grid]
+  [/grid]
+  [text:size-xs,color-muted] + 9 more files
+[/grid]
+[grid:cols-auto,gap-sm]
+  [button:icon-move] Move all
+  [button:icon-tag] Tag all
+[/grid]`
+    },
+    tagCollection: {
+      name: 'Tag Collection',
+      grammar: `[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [text:size-xs,color-dim] Related tags (4)
+  [grid:cols-auto-fit,min-80px,gap-sm]
+    [grid:cols-auto,gap-xs,border-true,background-true,padding-sm]
+      [icon:name-hash,size-12,color-dim]
+      [text:size-xs,color-mid] project
+      [text:size-xs,color-muted] (34)
+    [/grid]
+    [grid:cols-auto,gap-xs,border-true,background-true,padding-sm]
+      [icon:name-hash,size-12,color-dim]
+      [text:size-xs,color-mid] design
+      [text:size-xs,color-muted] (21)
+    [/grid]
+    [grid:cols-auto,gap-xs,border-true,background-true,padding-sm]
+      [icon:name-hash,size-12,color-dim]
+      [text:size-xs,color-mid] website
+      [text:size-xs,color-muted] (12)
+    [/grid]
+    [grid:cols-auto,gap-xs,border-true,background-true,padding-sm]
+      [icon:name-hash,size-12,color-dim]
+      [text:size-xs,color-mid] 2024
+      [text:size-xs,color-muted] (8)
+    [/grid]
+  [/grid]
+[/grid]`
+    },
+    statusMessages: {
+      name: 'Status Messages',
+      grammar: `[status:type-success] File created successfully
+[status:type-error] Failed to delete file: Permission denied
+[status:type-pending] Waiting for approval to modify 3 files...
+[status:type-info] Found 0 files matching criteria`
+    },
+    approval: {
+      name: 'Approval Request',
+      grammar: `[grid:cols-1,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-alert-circle,size-14]
+    [text:size-base,color-bright] Modify 3 files
+  [/grid]
+  [divider:space-md]
+  [text:size-xs,color-dim] This will modify the frontmatter of 3 files in /Projects
+[/grid]
+[grid:cols-auto,gap-sm]
+  [button:icon-check-circle,action-approve] Approve
+  [button:icon-x-circle,action-deny] Deny
+[/grid]`
+    },
+    stats: {
+      name: 'Statistics Grid',
+      grammar: `[grid:cols-2,gap-lg,border-true,background-true,padding-lg]
+  [grid:cols-1,gap-xs]
+    [text:size-xl,color-bright] 1,247
+    [text:size-xs,color-dim] Total notes
+  [/grid]
+  [grid:cols-1,gap-xs]
+    [text:size-xl,color-bright] 34
+    [text:size-xs,color-dim] Tags
+  [/grid]
+  [grid:cols-1,gap-xs]
+    [text:size-xl,color-bright] 23
+    [text:size-xs,color-dim] Orphaned
+  [/grid]
+  [grid:cols-1,gap-xs]
+    [text:size-xl,color-bright] 5
+    [text:size-xs,color-dim] Modified today
+  [/grid]
+[/grid]`
+    },
+    loading: {
+      name: 'Loading State',
+      grammar: `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [spinner]
+  [text:size-sm,color-dim] Searching 1,247 notes...
+[/grid]`
+    },
+    searchResults: {
+      name: 'Search Results',
+      grammar: `[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-search,size-14,color-dim]
+    [text:size-base,color-bright] 47 matches in 23 files
+  [/grid]
+  [divider:space-sm]
+  [grid:cols-1,gap-md]
+    [grid:cols-auto,gap-sm,align-start]
+      [icon:name-file-text,size-12,color-dim]
+      [grid:cols-1,gap-xs]
+        [text:size-sm,color-mid] /Journal/2024-03-15.md
+        [text:size-xs,color-dim] Emma had her first birthday party today...
+      [/grid]
+    [/grid]
+    [grid:cols-auto,gap-sm,align-start]
+      [icon:name-file-text,size-12,color-dim]
+      [grid:cols-1,gap-xs]
+        [text:size-sm,color-mid] /Projects/Website.md
+        [text:size-xs,color-dim] Meeting with Emma to discuss design direction...
+      [/grid]
+    [/grid]
+  [/grid]
+  [text:size-xs,color-muted] + 21 more files
+[/grid]`
+    }
+  };
+
+  return (
+    <div style={{
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      background: tokens.colors.bgBase,
+      color: tokens.colors.textMid,
+      minHeight: '100vh',
+      padding: '24px'
+    }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <Text size="xl" color="bright" style={{ marginBottom: '8px' }}>
+          Grammar UI System
+        </Text>
+        <Text size="sm" color="dim" style={{ marginBottom: '24px' }}>
+          Component library for Obsidian agent responses
+        </Text>
+
+        <Grid cols="auto" gap="sm" style={{ marginBottom: '24px' }}>
+          <Button primary={activeTab === 'editor'} onClick={() => setActiveTab('editor')}>
+            Editor
+          </Button>
+          <Button primary={activeTab === 'examples'} onClick={() => setActiveTab('examples')}>
+            Examples
+          </Button>
+        </Grid>
+
+        {activeTab === 'editor' && (
+          <>
+            <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+              Grammar:
+            </Text>
+            <textarea
+              value={grammar}
+              onChange={(e) => setGrammar(e.target.value)}
+              style={{
+                width: '100%',
+                minHeight: '200px',
+                background: tokens.colors.bgSurface,
+                border: `1px solid ${tokens.colors.border}`,
+                borderRadius: tokens.radius.md,
+                padding: tokens.spacing.lg,
+                color: tokens.colors.textMid,
+                fontSize: tokens.fontSize.sm,
+                fontFamily: 'monospace',
+                resize: 'vertical',
+                marginBottom: '16px'
+              }}
+            />
+            
+            <Text size="sm" color="dim" style={{ marginBottom: '16px' }}>
+              Rendered:
+            </Text>
+            
+            <GrammarRenderer grammar={grammar} />
+          </>
+        )}
+
+        {activeTab === 'examples' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            {Object.entries(examples).map(([key, { name, grammar }]) => (
+              <div key={key}>
+                <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
+                  {name}
+                </Text>
+                
+                <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+                  Grammar:
+                </Text>
+                <pre style={{
+                  background: tokens.colors.bgSurface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: tokens.radius.md,
+                  padding: tokens.spacing.lg,
+                  fontSize: tokens.fontSize.xs,
+                  color: tokens.colors.textMid,
+                  overflow: 'auto',
+                  marginBottom: '16px',
+                  fontFamily: 'monospace',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {grammar}
+                </pre>
+                
+                <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
+                  Rendered:
+                </Text>
+                <GrammarRenderer grammar={grammar} />
+                
+                <Button 
+                  icon="copy" 
+                  onClick={() => {
+                    navigator.clipboard.writeText(grammar);
+                  }}
+                  style={{ marginTop: '8px' }}
+                >
+                  Copy Grammar
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

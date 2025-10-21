@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent - Complete UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #b0b0b0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Main container */
+        .chat-view {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #000;
+        }
+
+        /* Header */
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #0a0a0a;
+            border-bottom: 1px solid #1a1a1a;
+            flex-shrink: 0;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header strong {
+            font-size: 15px;
+            font-weight: 400;
+            color: #ccc;
+        }
+
+        .version-tag {
+            font-size: 11px;
+            color: #666;
+            background: #0a0a0a;
+            padding: 2px 8px;
+            border-radius: 3px;
+            border: 1px solid #1a1a1a;
+        }
+
+        .chat-header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-btn {
+            background: #0f0f0f;
+            border: 1px solid #1a1a1a;
+            color: #999;
+            padding: 6px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+
+        .chat-btn:hover {
+            background: #1a1a1a;
+        }
+
+        /* Index status */
+        .index-status {
+            padding: 10px 20px;
+            font-size: 13px;
+            border-bottom: 1px solid #1a1a1a;
+            flex-shrink: 0;
+            background: #0a0a0a;
+            color: #5a7a5a;
+        }
+
+        /* Chat messages area */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            max-width: 680px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Message items */
+        .message-item {
+            margin-bottom: 24px;
+        }
+
+        /* User message bubble */
+        /* NOTE: Use Obsidian's theme accent color variable for user messages:
+           background: var(--interactive-accent);
+           This will adapt to the user's chosen theme color */
+        .user-message {
+            background: #1a1a2a; /* Fallback - replace with var(--interactive-accent) in actual implementation */
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #ccc;
+            max-width: 85%;
+            margin-left: auto;
+            margin-bottom: 24px;
+        }
+
+        /* Agent response - no bubble, just content */
+        .agent-response {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* System message */
+        .system-message {
+            background: #0f0f0f;
+            border: 1px solid #1a1a1a;
+            padding: 12px 16px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 24px;
+        }
+
+        /* Simple text response */
+        .text-response {
+            font-size: 14px;
+            color: #b0b0b0;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        /* Card styles */
+        .card {
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 4px;
+            padding: 12px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .file-item:hover {
+            background: #0f0f0f;
+            padding-left: 8px;
+            margin-left: -8px;
+            padding-right: 8px;
+            margin-right: -8px;
+        }
+
+        .file-icon {
+            width: 12px;
+            height: 12px;
+            color: #555;
+            flex-shrink: 0;
+        }
+
+        .file-path {
+            font-size: 13px;
+            color: #888;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .unstyled-btn {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.15s;
+        }
+
+        .unstyled-btn:hover {
+            background: #0f0f0f;
+        }
+
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: #0f0f0f;
+            border: 1px solid #1a1a1a;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .tag-name {
+            color: #888;
+        }
+
+        .tag-count {
+            color: #555;
+        }
+
+        /* Input container */
+        .chat-input-container {
+            background: #0a0a0a;
+            border-top: 1px solid #1a1a1a;
+            flex-shrink: 0;
+        }
+
+        /* Input wrapper */
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            gap: 12px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .message-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            color: #ccc;
+            background: transparent;
+            font-family: inherit;
+        }
+
+        .message-input::placeholder {
+            color: #555;
+        }
+
+        .send-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            transition: color 0.2s;
+        }
+
+        .send-btn:hover {
+            color: #ccc;
+        }
+
+        .send-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            gap: 16px;
+            background: #000;
+        }
+
+        /* Custom dropdown */
+        .custom-dropdown {
+            position: relative;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: #1a1a1a;
+            margin: 0 8px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 4px;
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 3px;
+            min-width: 120px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #999;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .dropdown-item:hover {
+            background: #0f0f0f;
+            color: #ccc;
+        }
+
+        .dropdown-item.selected {
+            color: #ccc;
+            background: #0f0f0f;
+        }
+
+        .toolbar-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #666;
+            padding: 6px 10px;
+            border-radius: 3px;
+            transition: background 0.15s, color 0.15s;
+            font-family: inherit;
+        }
+
+        .toolbar-btn:hover {
+            background: #0f0f0f;
+            color: #999;
+        }
+
+        .char-count {
+            margin-left: auto;
+            font-size: 12px;
+            color: #555;
+        }
+
+        /* Scrollbar */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #2a2a2a;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .list-title {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            border-top: 1px solid #1a1a1a;
+        }
+
+        .more-items {
+            font-size: 12px;
+            color: #555;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #1a1a1a;
+        }
+
+        .tag-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .section-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .file-detail {
+            display: flex;
+            gap: 8px;
+        }
+
+        .file-detail-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-detail-path {
+            font-size: 14px;
+            color: #ccc;
+            margin-bottom: 6px;
+            word-break: break-word;
+        }
+
+        .file-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .meta-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .divider {
+            height: 1px;
+            background: #1a1a1a;
+            margin: 12px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-view">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <strong>AI Agent - Semantic RAG</strong>
+                <span class="version-tag">v2.0.17</span>
+            </div>
+            <div class="chat-header-buttons">
+                <button class="chat-btn" id="indexBtn">Index Vault</button>
+                <button class="chat-btn" id="resetBtn">New Chat</button>
+            </div>
+        </div>
+
+        <!-- Index status -->
+        <div class="index-status">
+            ✓ Indexed: 142 files, 1,847 chunks
+        </div>
+
+        <!-- Chat messages -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="message-item">
+                <div class="system-message">AI Agent with Semantic RAG - v2.0.17
+
+✓ Vault indexed: 142 files, 1,847 chunks
+Ready to answer questions with semantic understanding!</div>
+            </div>
+
+            <div class="message-item">
+                <div class="user-message">What files are in my Projects folder?</div>
+            </div>
+
+            <div class="message-item">
+                <div class="agent-response">
+                    <div class="text-response">✦ I found 12 files in your Projects folder:</div>
+
+                    <div class="card">
+                        <div class="list-header">
+                            <span class="list-title">12 files found</span>
+                            <button class="collapse-btn" onclick="toggleList()">
+                                <span id="toggleText">Expand</span>
+                                <svg id="toggleIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="file-list" id="fileList">
+                            <div class="file-item">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span class="file-path">/Projects/Website.md</span>
+                            </div>
+                            <div class="file-item">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span class="file-path">/Projects/Mobile App.md</span>
+                            </div>
+                            <div class="file-item">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span class="file-path">/Projects/Brand Guidelines.md</span>
+                            </div>
+                            <div class="file-item hidden" data-hidden="true">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span class="file-path">/Projects/API Documentation.md</span>
+                            </div>
+                            <div class="file-item hidden" data-hidden="true">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span class="file-path">/Projects/User Research.md</span>
+                            </div>
+                            <div class="file-item hidden" data-hidden="true">
+                                <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span class="file-path">/Projects/Design System.md</span>
+                            </div>
+                        </div>
+                        <div class="more-items" id="moreItems">+ 6 more files</div>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="unstyled-btn">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                            <span>Move all</span>
+                        </button>
+                        <button class="unstyled-btn">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                            </svg>
+                            <span>Tag all</span>
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="section-label">Related tags (4)</div>
+                        <div class="tag-grid">
+                            <div class="tag-pill">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #555;">
+                                    <line x1="4" y1="9" x2="20" y2="9"></line>
+                                    <line x1="4" y1="15" x2="20" y2="15"></line>
+                                    <line x1="10" y1="3" x2="8" y2="21"></line>
+                                    <line x1="16" y1="3" x2="14" y2="21"></line>
+                                </svg>
+                                <span class="tag-name">project</span>
+                                <span class="tag-count">(34)</span>
+                            </div>
+                            <div class="tag-pill">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #555;">
+                                    <line x1="4" y1="9" x2="20" y2="9"></line>
+                                    <line x1="4" y1="15" x2="20" y2="15"></line>
+                                    <line x1="10" y1="3" x2="8" y2="21"></line>
+                                    <line x1="16" y1="3" x2="14" y2="21"></line>
+                                </svg>
+                                <span class="tag-name">design</span>
+                                <span class="tag-count">(21)</span>
+                            </div>
+                            <div class="tag-pill">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #555;">
+                                    <line x1="4" y1="9" x2="20" y2="9"></line>
+                                    <line x1="4" y1="15" x2="20" y2="15"></line>
+                                    <line x1="10" y1="3" x2="8" y2="21"></line>
+                                    <line x1="16" y1="3" x2="14" y2="21"></line>
+                                </svg>
+                                <span class="tag-name">website</span>
+                                <span class="tag-count">(12)</span>
+                            </div>
+                            <div class="tag-pill">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #555;">
+                                    <line x1="4" y1="9" x2="20" y2="9"></line>
+                                    <line x1="4" y1="15" x2="20" y2="15"></line>
+                                    <line x1="10" y1="3" x2="8" y2="21"></line>
+                                    <line x1="16" y1="3" x2="14" y2="21"></line>
+                                </svg>
+                                <span class="tag-name">2024</span>
+                                <span class="tag-count">(8)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input container -->
+        <div class="chat-input-container">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    class="message-input" 
+                    placeholder="Send a message"
+                    id="messageInput"
+                >
+                <button class="send-btn" id="sendBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="toolbar">
+                <div class="custom-dropdown">
+                    <button class="toolbar-btn" id="reasoningBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        <span id="reasoningLabel">Low</span>
+                    </button>
+                    <div class="dropdown-menu" id="reasoningMenu">
+                        <div class="dropdown-item" data-value="minimal">Minimal</div>
+                        <div class="dropdown-item selected" data-value="low">Low</div>
+                        <div class="dropdown-item" data-value="medium">Medium</div>
+                        <div class="dropdown-item" data-value="high">High</div>
+                    </div>
+                </div>
+
+                <div class="toolbar-divider"></div>
+
+                <div class="custom-dropdown">
+                    <button class="toolbar-btn" id="verbosityBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+                            <line x1="16" y1="8" x2="2" y2="22"></line>
+                            <line x1="17.5" y1="15" x2="9" y2="15"></line>
+                        </svg>
+                        <span id="verbosityLabel">Medium</span>
+                    </button>
+                    <div class="dropdown-menu" id="verbosityMenu">
+                        <div class="dropdown-item" data-value="low">Low</div>
+                        <div class="dropdown-item selected" data-value="medium">Medium</div>
+                        <div class="dropdown-item" data-value="high">High</div>
+                    </div>
+                </div>
+                
+                <span class="char-count" id="charCount">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const charCount = document.getElementById('charCount');
+        const chatMessages = document.getElementById('chatMessages');
+        const reasoningBtn = document.getElementById('reasoningBtn');
+        const reasoningMenu = document.getElementById('reasoningMenu');
+        const reasoningLabel = document.getElementById('reasoningLabel');
+        const verbosityBtn = document.getElementById('verbosityBtn');
+        const verbosityMenu = document.getElementById('verbosityMenu');
+        const verbosityLabel = document.getElementById('verbosityLabel');
+
+        let reasoningEffort = 'low';
+        let verbosity = 'medium';
+
+        // Update character count
+        messageInput.addEventListener('input', () => {
+            charCount.textContent = messageInput.value.length;
+        });
+
+        // Send message
+        sendBtn.addEventListener('click', handleSend);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSend();
+        });
+
+        function handleSend() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            const messageItem = document.createElement('div');
+            messageItem.className = 'message-item';
+            messageItem.innerHTML = `<div class="user-message">${message}</div>`;
+            chatMessages.appendChild(messageItem);
+
+            messageInput.value = '';
+            charCount.textContent = '0';
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Custom dropdown handling - Reasoning
+        reasoningBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            reasoningMenu.classList.toggle('show');
+            verbosityMenu.classList.remove('show'); // Close other dropdown
+        });
+
+        // Custom dropdown handling - Verbosity
+        verbosityBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            verbosityMenu.classList.toggle('show');
+            reasoningMenu.classList.remove('show'); // Close other dropdown
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            reasoningMenu.classList.remove('show');
+            verbosityMenu.classList.remove('show');
+        });
+
+        // Handle reasoning dropdown item selection
+        document.querySelectorAll('#reasoningMenu .dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Update selection
+                document.querySelectorAll('#reasoningMenu .dropdown-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                
+                // Update button label and value
+                reasoningEffort = item.dataset.value;
+                reasoningLabel.textContent = item.textContent;
+                
+                // Close menu
+                reasoningMenu.classList.remove('show');
+            });
+        });
+
+        // Handle verbosity dropdown item selection
+        document.querySelectorAll('#verbosityMenu .dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Update selection
+                document.querySelectorAll('#verbosityMenu .dropdown-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                
+                // Update button label and value
+                verbosity = item.dataset.value;
+                verbosityLabel.textContent = item.textContent;
+                
+                // Close menu
+                verbosityMenu.classList.remove('show');
+            });
+        });
+
+        // Toggle list expansion
+        let expanded = false;
+        function toggleList() {
+            expanded = !expanded;
+            const hiddenItems = document.querySelectorAll('[data-hidden]');
+            const moreItems = document.getElementById('moreItems');
+            const toggleText = document.getElementById('toggleText');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            hiddenItems.forEach(item => {
+                item.style.display = expanded ? 'flex' : 'none';
+            });
+
+            moreItems.style.display = expanded ? 'none' : 'block';
+            toggleText.textContent = expanded ? 'Collapse' : 'Expand';
+            
+            if (expanded) {
+                toggleIcon.innerHTML = '<polyline points="18 15 12 9 6 15"></polyline>';
+            } else {
+                toggleIcon.innerHTML = '<polyline points="9 18 15 12 9 6"></polyline>';
+            }
+        }
+
+        // Initialize hidden items
+        document.querySelectorAll('[data-hidden]').forEach(item => {
+            item.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

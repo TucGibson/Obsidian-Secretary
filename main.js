@@ -1,3 +1,9 @@
+// ============================================================================
+// VERSION: 2.0.17 - Redesigned input area for better UX
+// LAST UPDATED: 2025-10-21
+// CHANGES: Modern chat UI with auto-expand textarea, inline send button, compact controls
+// ============================================================================
+
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // ============================================================================
@@ -20,7 +26,9 @@ const DEFAULT_SETTINGS = {
   textVerbosity: 'medium',
   riskThreshold: 50,
   chunkSize: 800,
-  chunkOverlap: 150
+  chunkOverlap: 150,
+  autoIndexing: true,
+  autoIndexDelay: 30000 // 30 seconds
 };
 
 // Pricing per million tokens
@@ -50,17 +58,17 @@ class ContextBuilder {
   
   buildSystemMessages() {
     return [
-      { 
-        role: 'system', 
-        content: this.buildPillar1() 
+      {
+        role: 'system',
+        content: this.buildPillar1()
       },
-      { 
-        role: 'system', 
-        content: this.buildPillar5() 
+      {
+        role: 'system',
+        content: this.buildPillar5()
       },
-      { 
-        role: 'system', 
-        content: this.buildPillar2() 
+      {
+        role: 'system',
+        content: this.buildPillar2()
       }
     ];
   }
@@ -74,13 +82,15 @@ class ContextBuilder {
   }
   
   buildPillar2() {
-    const vaultStats = this.plugin.ragSystem?.getIndexStats() || { 
-      totalFiles: 0, 
-      totalChunks: 0, 
+    const vaultStats = this.plugin.ragSystem?.getIndexStats() || {
+      totalFiles: 0,
+      totalChunks: 0,
       indexed: false,
       embeddingMethod: 'Not loaded'
     };
-    
+
+    const folderStructure = this.getVaultFolderStructure();
+
     return `# WHAT YOU KNOW
 
 ## Vault Index Status
@@ -89,11 +99,66 @@ class ContextBuilder {
 - Search Method: ${vaultStats.embeddingMethod}
 - Index Ready: ${vaultStats.indexed ? 'YES' : 'NO'}
 
+## Vault Folder Structure
+${folderStructure}
+
 ## Memory System
 (Long-term memory not yet implemented)
 
 ## Available Context
 You have semantic search via embeddings. Use retrieve_relevant_chunks for meaning-based queries after narrowing with list_files or search_lexical.`;
+  }
+
+  getVaultFolderStructure() {
+    // Get all folders in the vault
+    const allFiles = this.plugin.app.vault.getAllLoadedFiles();
+    const folders = allFiles.filter(f => f.children); // Folders have children property
+
+    if (folders.length === 0) {
+      return 'No folders found in vault.';
+    }
+
+    // Build a tree structure
+    const tree = {};
+
+    for (const folder of folders) {
+      const path = folder.path;
+      if (!path) continue; // Skip root
+
+      const parts = path.split('/');
+      let current = tree;
+
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+    }
+
+    // Format as compact list
+    const formatTree = (obj, prefix = '', isRoot = true) => {
+      const entries = Object.entries(obj);
+      if (entries.length === 0) return '';
+
+      let result = '';
+      entries.forEach(([key, children], index) => {
+        const isLast = index === entries.length - 1;
+        const fullPath = prefix ? `${prefix}/${key}` : key;
+
+        result += `${fullPath}/\n`;
+
+        // Recursively add children (limit depth to 2 levels for compactness)
+        if (Object.keys(children).length > 0 && prefix.split('/').length < 2) {
+          result += formatTree(children, fullPath, false);
+        }
+      });
+
+      return result;
+    };
+
+    return formatTree(tree);
   }
   
   getDefaultPillar1() {
@@ -167,6 +232,9 @@ class RAGSystem {
     this.embeddings = new Map(); // path -> {chunks: [{text, embedding, start, end}]}
     this.isIndexing = false;
     this.indexed = false;
+    this.pendingUpdates = new Set(); // Files waiting to be indexed
+    this.debounceTimer = null;
+    this.fileEventHandlers = [];
   }
   
   getCachedMetadata(file) {
@@ -214,13 +282,21 @@ class RAGSystem {
         model: this.plugin.settings.embeddingModel,
         input: text,
         encoding_format: 'float'
-      })
+      }),
+      throw: false
     });
-    
+
     if (response.status !== 200) {
-      throw new Error(`Embedding API error: ${response.status}`);
+      // Provide helpful error messages
+      if (response.status === 401) {
+        throw new Error(`Invalid API key. Please update your OpenAI API key in Settings → AI Agent.`);
+      } else if (response.status === 429) {
+        throw new Error(`Rate limit exceeded. Please wait and try again.`);
+      } else {
+        throw new Error(`Embedding API error: ${response.status}`);
+      }
     }
-    
+
     return response.json.data[0].embedding;
   }
   
@@ -362,7 +438,17 @@ class RAGSystem {
         
         if (response.status !== 200) {
           console.error(`[RAG] API error for ${file.path}:`, response.status, response.json);
-          throw new Error(`Embedding API error ${response.status}: ${JSON.stringify(response.json)}`);
+
+          // Provide helpful error messages based on status code
+          if (response.status === 401) {
+            throw new Error(`Invalid API key. Please check your OpenAI API key in plugin settings. Go to Settings → AI Agent → OpenAI API Key and update it. You can get a valid key at https://platform.openai.com/api-keys`);
+          } else if (response.status === 429) {
+            throw new Error(`Rate limit exceeded. Please wait a moment and try again, or check your OpenAI API quota.`);
+          } else if (response.status === 403) {
+            throw new Error(`Access forbidden. Your API key may not have permission to use the embeddings API.`);
+          } else {
+            throw new Error(`Embedding API error ${response.status}: ${JSON.stringify(response.json)}`);
+          }
         }
         
         const embeddings = response.json.data;
@@ -406,16 +492,34 @@ class RAGSystem {
     if (this.isIndexing) {
       throw new Error('Indexing already in progress');
     }
-    
+
     // Validate settings
     if (!this.plugin.settings.apiKey) {
       throw new Error('OpenAI API key not set. Please add it in plugin settings.');
     }
-    
+
+    // Validate API key format
+    const apiKey = this.plugin.settings.apiKey.trim();
+    if (!apiKey.startsWith('sk-')) {
+      throw new Error('Invalid API key format. OpenAI API keys should start with "sk-". Please check your API key in Settings → AI Agent.');
+    }
+
+    // Log API key info (first 10 chars only for security)
+    console.log(`[RAG] API Key prefix: ${apiKey.substring(0, 10)}...`);
+    console.log(`[RAG] API Key suffix: ...${apiKey.substring(apiKey.length - 4)}`);
+    console.log(`[RAG] API Key length: ${apiKey.length} characters`);
+
+    // Warn if key length is unusual
+    if (apiKey.length > 200) {
+      throw new Error(`API key is unusually long (${apiKey.length} characters). It may be corrupted. Please get a fresh API key from https://platform.openai.com/api-keys and paste it carefully.`);
+    } else if (apiKey.length < 40) {
+      throw new Error(`API key is too short (${apiKey.length} characters). Please check that you copied the complete key.`);
+    }
+
     if (!this.plugin.settings.embeddingModel) {
       throw new Error('Embedding model not set. Please configure in plugin settings.');
     }
-    
+
     console.log(`[RAG] Using embedding model: ${this.plugin.settings.embeddingModel}`);
     
     this.isIndexing = true;
@@ -446,16 +550,264 @@ class RAGSystem {
       
       this.indexed = successful > 0;
       console.log(`[RAG] Indexing complete: ${successful} succeeded, ${failed} failed, ${this.embeddings.size} files indexed`);
-      
+
       if (failed > 0) {
         console.warn(`[RAG] ${failed} files failed to index`);
       }
-      
+
+      // Save embeddings to disk after successful indexing
+      if (this.indexed) {
+        await this.saveEmbeddings();
+      }
+
     } finally {
       this.isIndexing = false;
     }
   }
-  
+
+  /**
+   * Save embeddings to disk
+   */
+  async saveEmbeddings() {
+    try {
+      const embeddingsPath = `${this.plugin.manifest.dir}/embeddings.json`;
+      const data = {
+        version: 1,
+        indexed_at: Date.now(),
+        embeddings: Array.from(this.embeddings.entries()).map(([path, data]) => ({
+          path,
+          chunks: data.chunks,
+          indexed_at: data.indexed_at
+        }))
+      };
+
+      await this.plugin.app.vault.adapter.write(embeddingsPath, JSON.stringify(data));
+      console.log(`[RAG] Saved ${this.embeddings.size} file embeddings to disk`);
+    } catch (error) {
+      console.error('[RAG] Error saving embeddings:', error);
+    }
+  }
+
+  /**
+   * Load embeddings from disk
+   */
+  async loadEmbeddings() {
+    try {
+      const embeddingsPath = `${this.plugin.manifest.dir}/embeddings.json`;
+
+      // Check if file exists
+      const exists = await this.plugin.app.vault.adapter.exists(embeddingsPath);
+      if (!exists) {
+        console.log('[RAG] No saved embeddings found');
+        return false;
+      }
+
+      const json = await this.plugin.app.vault.adapter.read(embeddingsPath);
+      const data = JSON.parse(json);
+
+      // Restore embeddings
+      this.embeddings.clear();
+      for (const item of data.embeddings) {
+        this.embeddings.set(item.path, {
+          chunks: item.chunks,
+          indexed_at: item.indexed_at
+        });
+      }
+
+      this.indexed = true;
+      console.log(`[RAG] Loaded ${this.embeddings.size} embeddings from disk`);
+      return true;
+    } catch (error) {
+      console.error('[RAG] Error loading embeddings:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check for files modified since last index and re-index them
+   */
+  async checkModifiedFiles() {
+    if (!this.indexed) {
+      return;
+    }
+
+    const files = this.plugin.app.vault.getMarkdownFiles();
+    const toUpdate = [];
+
+    for (const file of files) {
+      const indexed = this.embeddings.get(file.path);
+
+      if (!indexed) {
+        toUpdate.push(file);
+      } else if (file.stat.mtime > indexed.indexed_at) {
+        toUpdate.push(file);
+      }
+    }
+
+    // Check for deleted files
+    const existingPaths = new Set(files.map(f => f.path));
+    const toDelete = [];
+    for (const path of this.embeddings.keys()) {
+      if (!existingPaths.has(path)) {
+        toDelete.push(path);
+      }
+    }
+
+    if (toUpdate.length > 0 || toDelete.length > 0) {
+      console.log(`[RAG] Syncing: ${toUpdate.length} new/modified, ${toDelete.length} deleted`);
+
+      // Delete removed files
+      for (const path of toDelete) {
+        this.embeddings.delete(path);
+      }
+
+      // Index new/modified files
+      if (toUpdate.length > 0) {
+        await this.indexFiles(toUpdate);
+      }
+
+      await this.saveEmbeddings();
+    }
+  }
+
+  /**
+   * Index specific files (incremental)
+   */
+  async indexFiles(files) {
+    for (const file of files) {
+      try {
+        await this.indexFile(file);
+      } catch (error) {
+        console.error(`[RAG] Error indexing ${file.path}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Start watching for file changes
+   */
+  startFileWatcher() {
+    if (!this.plugin.settings.autoIndexing) {
+      console.log('[RAG] Auto-indexing disabled');
+      return;
+    }
+
+    console.log(`[RAG] Starting file watcher (${this.embeddings.size} files already indexed)`);
+
+    // Handle file creation
+    const onCreate = this.plugin.app.vault.on('create', (file) => {
+      if (file.extension === 'md') {
+        const indexed = this.embeddings.get(file.path);
+        if (!indexed) {
+          console.log(`[RAG] New file: ${file.path}`);
+          this.queueFileUpdate(file.path);
+        }
+        // Skip logging if already indexed - reduces console spam
+      }
+    });
+
+    // Handle file modification
+    const onModify = this.plugin.app.vault.on('modify', (file) => {
+      if (file.extension === 'md') {
+        const indexed = this.embeddings.get(file.path);
+        if (!indexed) {
+          console.log(`[RAG] Modified file (not indexed): ${file.path}`);
+          this.queueFileUpdate(file.path);
+        } else if (file.stat.mtime > indexed.indexed_at) {
+          console.log(`[RAG] Modified file: ${file.path}`);
+          this.queueFileUpdate(file.path);
+        }
+        // Skip logging if up to date - reduces console spam
+      }
+    });
+
+    // Handle file deletion
+    const onDelete = this.plugin.app.vault.on('delete', (file) => {
+      if (file.extension === 'md') {
+        console.log(`[RAG] File deleted: ${file.path}`);
+        this.embeddings.delete(file.path);
+        this.saveEmbeddings();
+      }
+    });
+
+    // Handle file rename
+    const onRename = this.plugin.app.vault.on('rename', (file, oldPath) => {
+      if (file.extension === 'md') {
+        console.log(`[RAG] File renamed: ${oldPath} -> ${file.path}`);
+        const data = this.embeddings.get(oldPath);
+        if (data) {
+          this.embeddings.delete(oldPath);
+          this.embeddings.set(file.path, data);
+          this.saveEmbeddings();
+        }
+      }
+    });
+
+    this.fileEventHandlers = [onCreate, onModify, onDelete, onRename];
+  }
+
+  /**
+   * Stop watching for file changes
+   */
+  stopFileWatcher() {
+    console.log('[RAG] Stopping file watcher');
+    for (const handler of this.fileEventHandlers) {
+      this.plugin.app.vault.offref(handler);
+    }
+    this.fileEventHandlers = [];
+
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+  }
+
+  /**
+   * Queue a file for indexing (with debouncing)
+   */
+  queueFileUpdate(path) {
+    this.pendingUpdates.add(path);
+
+    // Clear existing timer
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+
+    // Set new timer
+    this.debounceTimer = setTimeout(async () => {
+      await this.processQueuedUpdates();
+    }, this.plugin.settings.autoIndexDelay);
+  }
+
+  /**
+   * Process all queued file updates
+   */
+  async processQueuedUpdates() {
+    if (this.pendingUpdates.size === 0) return;
+
+    // Don't process queue if vault hasn't been indexed yet
+    if (!this.indexed) {
+      console.log(`[RAG] Ignoring ${this.pendingUpdates.size} queued updates - vault not indexed yet`);
+      this.pendingUpdates.clear();
+      return;
+    }
+
+    const paths = Array.from(this.pendingUpdates);
+    this.pendingUpdates.clear();
+
+    console.log(`[RAG] Processing ${paths.length} queued updates`);
+
+    const files = paths
+      .map(path => this.plugin.app.vault.getAbstractFileByPath(path))
+      .filter(f => f && f.extension === 'md');
+
+    if (files.length > 0) {
+      await this.indexFiles(files);
+      await this.saveEmbeddings();
+      console.log(`[RAG] Auto-indexed ${files.length} files`);
+    }
+  }
+
   /**
    * Apply Maximal Marginal Relevance for diversity
    */
@@ -609,25 +961,16 @@ class ToolManager {
   
   normalizePaths(within_paths) {
     let p = within_paths || [];
-    
+
     if (Array.isArray(p) && p.length === 1 && Array.isArray(p[0])) {
       console.log('[ToolManager] Unwrapping nested within_paths array');
       p = p[0];
     }
-    
+
     p = p.filter(x => typeof x === "string");
     return Array.from(new Set(p));
   }
-  
-  isBareWord(query) {
-    return /^[a-z0-9\s]+$/i.test(query);
-  }
-  
-  toWordPattern(query) {
-    const escaped = query.trim().replace(/\s+/g, '\\s+');
-    return `\\b${escaped}(?:'s)?\\b`;
-  }
-  
+
   initializeTools() {
     return {
       list_files: {
@@ -929,27 +1272,27 @@ class ToolManager {
           const results = [];
           const truncated = [];
           let totalChars = 0;
-          
+
           for (const path of args.paths) {
             if (totalChars >= maxChars) {
               truncated.push(path);
               continue;
             }
-            
+
             const file = this.plugin.app.vault.getAbstractFileByPath(path);
             if (file) {
               try {
                 const content = await this.plugin.app.vault.read(file);
                 const remaining = maxChars - totalChars;
-                
+
                 if (content.length <= remaining) {
                   results.push({ path, text: content });
                   totalChars += content.length;
                 } else {
-                  results.push({ 
-                    path, 
+                  results.push({
+                    path,
                     text: content.substring(0, remaining),
-                    truncated: true 
+                    truncated: true
                   });
                   totalChars += remaining;
                   truncated.push(path);
@@ -959,7 +1302,7 @@ class ToolManager {
               }
             }
           }
-          
+
           return {
             items: results,
             truncated_paths: truncated,
@@ -968,182 +1311,7 @@ class ToolManager {
           };
         }
       },
-      
-      find_in_files: {
-        schema: {
-          type: 'function',
-          name: 'find_in_files',
-          description: 'Multi-pattern body text search with auto date extraction.',
-          parameters: {
-            type: 'object',
-            properties: {
-              within_paths: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'File paths to search within (required)'
-              },
-              patterns: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Multiple regex patterns to search'
-              },
-              query: {
-                type: 'string',
-                description: 'Single query (alternative to patterns)'
-              },
-              case_insensitive: {
-                type: 'boolean',
-                description: 'Case-insensitive search. Default: true'
-              },
-              max_matches: {
-                type: 'number',
-                description: 'Maximum matches. Default: 10'
-              },
-              context_chars: {
-                type: 'number',
-                description: 'Context window size. Default: 600'
-              },
-              stop_on_first: {
-                type: 'boolean',
-                description: 'Stop after first confident match. Default: true'
-              },
-              extract_dates_nearby: {
-                type: 'boolean',
-                description: 'Auto-extract dates near matches. Default: true'
-              }
-            },
-            required: ['within_paths']
-          }
-        },
-        execute: async (args) => {
-          const case_insensitive = args.case_insensitive !== false;
-          const max_matches = Math.min(args.max_matches || 10, 100);
-          const context_chars = Math.min(Math.max(args.context_chars || 600, 200), 2000);
-          const stop_on_first = args.stop_on_first !== false;
-          const extract_dates = args.extract_dates_nearby !== false;
-          
-          let within_paths = this.normalizePaths(args.within_paths);
-          
-          if (within_paths.length === 0) {
-            return {
-              error: 'within_paths_required: cannot search with empty path list',
-              matches: []
-            };
-          }
-          
-          console.log(`[find_in_files] Searching ${within_paths.length} files`);
-          
-          let patterns = args.patterns || [];
-          if (patterns.length === 0 && args.query) {
-            if (this.isBareWord(args.query)) {
-              patterns = [this.toWordPattern(args.query)];
-              console.log(`[find_in_files] Auto-wrapped bare word: ${patterns[0]}`);
-            } else {
-              patterns = [args.query];
-            }
-          }
-          
-          if (patterns.length === 0) {
-            return { error: 'Must provide either patterns or query', matches: [] };
-          }
-          
-          const matches = [];
-          const flags = case_insensitive ? 'gi' : 'g';
-          
-          try {
-            const regexes = patterns.map(p => new RegExp(p, flags));
-            const dateRx = /\b(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\d{4}[-/.]\d{1,2}[-/.]\d{1,2})\b/gi;
-            
-            for (const path of within_paths) {
-              if (matches.length >= max_matches) break;
-              
-              const file = this.plugin.app.vault.getAbstractFileByPath(path);
-              if (!file) continue;
-              
-              try {
-                const txt = await this.plugin.app.vault.read(file);
-                
-                for (const rx of regexes) rx.lastIndex = 0;
-                dateRx.lastIndex = 0;
-                
-                for (const rx of regexes) {
-                  let match;
-                  let guard = 0;
-                  
-                  while ((match = rx.exec(txt)) && matches.length < max_matches && guard < 1000) {
-                    const matchStart = match.index;
-                    const matchEnd = match.index + match[0].length;
-                    
-                    const contextStart = Math.max(0, matchStart - Math.floor(context_chars / 2));
-                    const contextEnd = Math.min(txt.length, matchEnd + Math.floor(context_chars / 2));
-                    const snippet = txt.slice(contextStart, contextEnd);
-                    
-                    let dates = [];
-                    if (extract_dates) {
-                      const dateStart = Math.max(0, matchStart - 400);
-                      const dateEnd = Math.min(txt.length, matchEnd + 400);
-                      const dateWindow = txt.slice(dateStart, dateEnd);
-                      dateRx.lastIndex = 0;
-                      dates = Array.from(dateWindow.matchAll(dateRx)).map(d => d[0]);
-                    }
-                    
-                    matches.push({
-                      path: path,
-                      start: contextStart,
-                      end: contextEnd,
-                      match_start: matchStart,
-                      match_len: match[0].length,
-                      snippet: snippet,
-                      dates: dates
-                    });
-                    
-                    if (stop_on_first && dates.length > 0) {
-                      console.log(`[find_in_files] Found confident match with date, stopping`);
-                      const totalChars = snippet.length;
-                      return {
-                        matches: matches,
-                        total: matches.length,
-                        stopped_early: true,
-                        estimated_tokens_1k: Math.ceil(totalChars / 4 / 1000) * 1000
-                      };
-                    }
-                    
-                    guard++;
-                    
-                    if (rx.lastIndex === match.index) {
-                      rx.lastIndex++;
-                    }
-                    
-                    if (matches.length >= max_matches) break;
-                  }
-                  
-                  if (matches.length >= max_matches) break;
-                }
-              } catch (error) {
-                console.error(`[find_in_files] Error reading ${path}:`, error);
-              }
-            }
-          } catch (error) {
-            return {
-              error: `Invalid regex pattern: ${error.message}`,
-              matches: []
-            };
-          }
-          
-          const totalChars = matches.reduce((sum, m) => sum + (m.snippet?.length || 0), 0);
-          const needsNarrowing = matches.length >= max_matches;
-          
-          console.log(`[find_in_files] Found ${matches.length} matches`);
-          
-          return {
-            matches: matches,
-            total: matches.length,
-            needs_narrowing: needsNarrowing,
-            estimated_tokens_1k: Math.ceil(totalChars / 4 / 1000) * 1000
-          };
-        }
-      },
-      
+
       retrieve_relevant_chunks: {
         schema: {
           type: 'function',
@@ -1268,19 +1436,15 @@ class ToolManager {
   
   isZeroResult(toolName, result) {
     if (!result) return true;
-    
-    if (toolName === 'search_lexical' || toolName === 'find_in_files') {
-      return !result.hits?.length && !result.matches?.length;
-    }
-    
+
     if (toolName === 'list_files') {
       return result.count === 0 || result.items?.length === 0;
     }
-    
+
     if (toolName === 'retrieve_relevant_chunks') {
       return !result.hits?.length;
     }
-    
+
     return false;
   }
   
@@ -1296,9 +1460,10 @@ class ToolManager {
 ///// PART 5 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class AgentLoop {
-  constructor(plugin, userMessage) {
+  constructor(plugin, userMessage, reasoningEffort = null) {
     this.plugin = plugin;
     this.userMessage = userMessage;
+    this.reasoningEffort = reasoningEffort; // Per-query reasoning effort
     this.maxIterations = 20;
     this.iteration = 0;
     this.callbacks = {};
@@ -1306,41 +1471,70 @@ class AgentLoop {
   
   async run(callbacks = {}) {
     this.callbacks = callbacks;
-    
+    const startTime = Date.now();
+
+    // Accumulate total usage across all API calls
+    const totalUsage = {
+      total_input_tokens: 0,
+      total_cached_tokens: 0,
+      total_output_tokens: 0,
+      total_reasoning_tokens: 0
+    };
+
+    const accumulateUsage = (usage) => {
+      if (!usage) return;
+      totalUsage.total_input_tokens += usage.input_tokens || 0;
+      totalUsage.total_cached_tokens += usage.input_tokens_details?.cached_tokens || 0;
+      totalUsage.total_output_tokens += usage.output_tokens || 0;
+      totalUsage.total_reasoning_tokens += usage.output_tokens_details?.reasoning_tokens || 0;
+    };
+
     try {
       const systemMessages = this.plugin.contextBuilder.buildSystemMessages();
+
+      // Log message order and sizes for cache debugging
+      console.log('[Cache Debug] Message order:');
+      systemMessages.forEach((msg, i) => {
+        const preview = msg.content.substring(0, 50).replace(/\n/g, ' ');
+        console.log(`  ${i}: ${msg.role} (${msg.content.length} chars) - "${preview}..."`);
+      });
+
       const firstTurnInput = [
         ...systemMessages,
         { role: 'user', content: this.userMessage }
       ];
-      
-      let response = await this.step(firstTurnInput);
-      
+
+      let response = await this.step(firstTurnInput, this.reasoningEffort);
+      accumulateUsage(response.usage);
+
       if (this.isDone) {
         return {
           success: true,
           finalOutput: this.finalOutput,
           iterations: this.iteration,
-          usage: response.usage
+          usage: totalUsage,
+          elapsedMs: Date.now() - startTime
         };
       }
-      
+
       while (this.iteration < this.maxIterations && !this.isDone) {
         this.iteration++;
         console.log(`\n=== AGENT LOOP ITERATION ${this.iteration} ===`);
-        
+
         const parsed = this.plugin.apiHandler.parseResponse(response);
-        
+
         if (parsed.toolCalls && parsed.toolCalls.length > 0) {
           const outputs = await this.executeToolCalls(parsed.toolCalls);
-          response = await this.plugin.apiHandler.flushToolOutputs(outputs);
-          
+          response = await this.plugin.apiHandler.flushToolOutputs(outputs, this.reasoningEffort);
+          accumulateUsage(response.usage);
+
           if (this.isDone) {
             return {
               success: true,
               finalOutput: this.finalOutput,
               iterations: this.iteration,
-              usage: response.usage
+              usage: totalUsage,
+              elapsedMs: Date.now() - startTime
             };
           }
         } else if (parsed.text) {
@@ -1351,33 +1545,36 @@ class AgentLoop {
             success: true,
             finalOutput: this.finalOutput,
             iterations: this.iteration,
-            usage: response.usage
+            usage: totalUsage,
+            elapsedMs: Date.now() - startTime
           };
         } else {
           throw new Error('Model stopped without calling output_to_user or providing text');
         }
       }
-      
+
       throw new Error(`Agent reached maximum iterations (${this.maxIterations})`);
-      
+
     } catch (error) {
       console.error('[AgentLoop] Error:', error);
       return {
         success: false,
         error: error.message,
-        iterations: this.iteration
+        iterations: this.iteration,
+        usage: totalUsage,
+        elapsedMs: Date.now() - startTime
       };
     }
   }
   
-  async step(firstTurnInput) {
+  async step(firstTurnInput, reasoningEffort = null) {
     this.iteration++;
     console.log(`\n=== AGENT LOOP ITERATION ${this.iteration} ===`);
-    
-    const firstResponse = await this.plugin.apiHandler.sendMessageWithTools(firstTurnInput);
-    
+
+    const firstResponse = await this.plugin.apiHandler.sendMessageWithTools(firstTurnInput, reasoningEffort);
+
     const parsed = this.plugin.apiHandler.parseResponse(firstResponse);
-    
+
     if (!parsed.toolCalls || parsed.toolCalls.length === 0) {
       if (parsed.text) {
         console.warn('[AgentLoop] Model returned text without tools on first turn');
@@ -1387,10 +1584,10 @@ class AgentLoop {
       }
       throw new Error('Model returned no tool calls and no text');
     }
-    
+
     const outputs = await this.executeToolCalls(parsed.toolCalls);
-    const followupResponse = await this.plugin.apiHandler.flushToolOutputs(outputs);
-    
+    const followupResponse = await this.plugin.apiHandler.flushToolOutputs(outputs, reasoningEffort);
+
     return followupResponse;
   }
   
@@ -1487,18 +1684,22 @@ class APIHandler {
   constructor(plugin) {
     this.plugin = plugin;
   }
-  
-  async sendMessageWithTools(inputItems) {
+
+  async sendMessageWithTools(inputItems, reasoningEffort = null) {
     const tools = this.plugin.toolManager.getToolSchemas();
-    
+
     console.log('[API] Sending request');
     console.log('[API] Input items:', inputItems.length);
-    
+
+    // Use per-query reasoning effort if provided, otherwise fall back to global setting
+    const effectiveReasoningEffort = reasoningEffort || this.plugin.settings.reasoningEffort;
+
     const requestBody = {
       model: this.plugin.settings.model,
       input: inputItems,
       tools: tools,
-      reasoning: { effort: this.plugin.settings.reasoningEffort },
+      parallel_tool_calls: true,
+      reasoning: { effort: effectiveReasoningEffort },
       text: { verbosity: this.plugin.settings.textVerbosity },
       store: true,
       stream: false
@@ -1527,28 +1728,29 @@ class APIHandler {
     
     const data = response.json;
     this.plugin.previousResponseId = data.id;
-    
+
     console.log('[API] Response received');
-    
+    console.log('[API] Usage stats:', JSON.stringify(data.usage, null, 2));
+
     return data;
   }
   
-  async flushToolOutputs(outputs) {
+  async flushToolOutputs(outputs, reasoningEffort = null) {
     if (!outputs || outputs.length === 0) {
       return null;
     }
-    
+
     console.log('[API] Flushing', outputs.length, 'function_call_output items');
-    
+
     for (const output of outputs) {
       if (!output.call_id) {
         throw new Error('Cannot flush output without call_id');
       }
     }
-    
-    const response = await this.sendMessageWithTools(outputs);
+
+    const response = await this.sendMessageWithTools(outputs, reasoningEffort);
     console.log('[API] Tool outputs flushed successfully');
-    
+
     return response;
   }
   
@@ -1650,10 +1852,19 @@ class ChatView extends ItemView {
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass('chat-view');
-    
+
     const header = container.createDiv({ cls: 'chat-header' });
     header.createEl('strong', { text: 'AI Agent - Semantic RAG' });
-    
+
+    // Version display
+    const versionEl = header.createEl('span', {
+      cls: 'version-tag',
+      text: 'v2.0.17'
+    });
+    versionEl.style.fontSize = '11px';
+    versionEl.style.opacity = '0.7';
+    versionEl.style.marginLeft = '10px';
+
     // Index button
     const indexBtn = header.createEl('button', {
       cls: 'chat-btn',
@@ -1678,46 +1889,156 @@ class ChatView extends ItemView {
     this.updateIndexStatus();
     
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
-    
+
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG!\n\n';
-    
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.17\n\n';
+
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
     } else {
       welcomeMsg += '⚠️ Vault not indexed yet. Click "Index Vault" to enable semantic search.';
     }
-    
+
     this.addMessage('system', welcomeMsg);
-    
+
     const inputContainer = container.createDiv({ cls: 'chat-input-container' });
-    
-    this.inputEl = inputContainer.createEl('textarea', {
-      cls: 'chat-input',
-      placeholder: 'Ask me anything about your vault...'
+    inputContainer.style.background = 'var(--background-primary)';
+    inputContainer.style.borderTop = '1px solid var(--background-modifier-border)';
+
+    // Input wrapper - exactly like example
+    const inputWrapper = inputContainer.createDiv({ cls: 'input-wrapper' });
+    inputWrapper.style.display = 'flex';
+    inputWrapper.style.alignItems = 'center';
+    inputWrapper.style.padding = '16px 20px';
+    inputWrapper.style.gap = '12px';
+    inputWrapper.style.borderBottom = '1px solid var(--background-modifier-border)';
+
+    this.inputEl = inputWrapper.createEl('input', {
+      cls: 'message-input',
+      attr: { type: 'text', placeholder: 'Send a message' }
     });
-    
-    this.sendBtn = inputContainer.createEl('button', {
-      cls: 'chat-send-btn',
-      text: 'Send'
+    this.inputEl.style.flex = '1';
+    this.inputEl.style.border = 'none';
+    this.inputEl.style.outline = 'none';
+    this.inputEl.style.fontSize = '15px';
+    this.inputEl.style.color = 'var(--text-normal)';
+    this.inputEl.style.background = 'transparent';
+    this.inputEl.style.fontFamily = 'var(--font-text)';
+
+    this.sendBtn = inputWrapper.createEl('button', {
+      cls: 'send-btn',
+      attr: { 'aria-label': 'Send message' }
     });
-    
+    this.sendBtn.style.background = 'none';
+    this.sendBtn.style.border = 'none';
+    this.sendBtn.style.cursor = 'pointer';
+    this.sendBtn.style.padding = '4px';
+    this.sendBtn.style.display = 'flex';
+    this.sendBtn.style.alignItems = 'center';
+    this.sendBtn.style.justifyContent = 'center';
+    this.sendBtn.style.color = 'var(--text-muted)';
+    this.sendBtn.style.transition = 'color 0.2s';
+
+    this.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+    </svg>`;
+
+    this.sendBtn.onmouseenter = () => {
+      this.sendBtn.style.color = 'var(--text-normal)';
+    };
+    this.sendBtn.onmouseleave = () => {
+      this.sendBtn.style.color = 'var(--text-muted)';
+    };
+
+    // Toolbar - exactly like example
+    const toolbar = inputContainer.createDiv({ cls: 'toolbar' });
+    toolbar.style.display = 'flex';
+    toolbar.style.alignItems = 'center';
+    toolbar.style.padding = '12px 20px';
+    toolbar.style.gap = '16px';
+
+    // Reasoning button - follows exact toolbar-btn pattern from example
+    const reasoningBtn = toolbar.createEl('button', { cls: 'toolbar-btn' });
+    reasoningBtn.style.background = 'none';
+    reasoningBtn.style.border = 'none';
+    reasoningBtn.style.cursor = 'pointer';
+    reasoningBtn.style.display = 'flex';
+    reasoningBtn.style.alignItems = 'center';
+    reasoningBtn.style.gap = '6px';
+    reasoningBtn.style.fontSize = '14px';
+    reasoningBtn.style.color = 'var(--text-muted)';
+    reasoningBtn.style.padding = '6px 10px';
+    reasoningBtn.style.borderRadius = '6px';
+    reasoningBtn.style.transition = 'background 0.2s, color 0.2s';
+    reasoningBtn.style.fontFamily = 'inherit';
+
+    const reasoningIcon = reasoningBtn.createEl('span');
+    reasoningIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+    </svg>`;
+
+    const reasoningText = reasoningBtn.createEl('span');
+    reasoningText.textContent = 'Reasoning: ';
+
+    this.reasoningSelect = reasoningBtn.createEl('select', { cls: 'reasoning-select' });
+    this.reasoningSelect.style.background = 'none';
+    this.reasoningSelect.style.border = 'none';
+    this.reasoningSelect.style.outline = 'none';
+    this.reasoningSelect.style.cursor = 'pointer';
+    this.reasoningSelect.style.fontSize = '14px';
+    this.reasoningSelect.style.color = 'inherit';
+    this.reasoningSelect.style.fontFamily = 'inherit';
+    this.reasoningSelect.style.padding = '0';
+    this.reasoningSelect.style.margin = '0';
+
+    const options = [
+      { value: 'minimal', label: 'Minimal' },
+      { value: 'low', label: 'Low' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'high', label: 'High' }
+    ];
+
+    options.forEach(opt => {
+      const option = this.reasoningSelect.createEl('option', {
+        value: opt.value,
+        text: opt.label
+      });
+      if (opt.value === 'low') {
+        option.selected = true;
+      }
+    });
+
+    reasoningBtn.onmouseenter = () => {
+      reasoningBtn.style.background = 'var(--background-modifier-hover)';
+      reasoningBtn.style.color = 'var(--text-normal)';
+    };
+    reasoningBtn.onmouseleave = () => {
+      reasoningBtn.style.background = 'transparent';
+      reasoningBtn.style.color = 'var(--text-muted)';
+    };
+
     this.sendBtn.onclick = () => this.handleSend();
-    this.inputEl.onkeydown = (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+    this.inputEl.onkeypress = (e) => {
+      if (e.key === 'Enter') {
         e.preventDefault();
         this.handleSend();
       }
     };
   }
   
-  updateIndexStatus() {
+  updateIndexStatus(currentFile = null, current = 0, total = 0) {
     if (!this.statusEl) return;
-    
+
     const stats = this.plugin.ragSystem.getIndexStats();
-    
+
     if (stats.indexing) {
-      this.statusEl.textContent = '⏳ Indexing in progress...';
+      if (current > 0 && total > 0) {
+        const percentage = Math.round((current / total) * 100);
+        this.statusEl.textContent = `⏳ Indexing: ${current}/${total} (${percentage}%)`;
+      } else {
+        this.statusEl.textContent = '⏳ Indexing in progress...';
+      }
       this.statusEl.className = 'index-status indexing';
     } else if (stats.indexed) {
       this.statusEl.textContent = `✓ Indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks`;
@@ -1729,19 +2050,25 @@ class ChatView extends ItemView {
   }
   
   async indexVault() {
-    const statusMsg = this.addMessage('system', '🔄 Indexing vault...');
+    const statusMsg = this.addMessage('system', '🔄 Starting indexing...');
     this.updateIndexStatus();
-    
+
     try {
       let lastUpdate = Date.now();
-      
+      let lastFile = '';
+
       await this.plugin.ragSystem.indexVault((path, current, total) => {
-        // Throttle updates to every 500ms
+        // Always update on file change or throttle to every 200ms
         const now = Date.now();
-        if (now - lastUpdate > 500 || current === total) {
-          statusMsg.textContent = `🔄 Indexing: ${current}/${total} files`;
-          this.updateIndexStatus();
+        const fileChanged = path !== lastFile;
+
+        if (fileChanged || now - lastUpdate > 200 || current === total) {
+          const percentage = Math.round((current / total) * 100);
+          const fileName = path.split('/').pop(); // Get just the filename
+          statusMsg.textContent = `🔄 Indexing: ${current}/${total} files (${percentage}%)\n📄 Current: ${fileName}`;
+          this.updateIndexStatus(fileName, current, total);
           lastUpdate = now;
+          lastFile = path;
         }
       });
       
@@ -1760,19 +2087,22 @@ class ChatView extends ItemView {
   async handleSend() {
     const message = this.inputEl.value.trim();
     if (!message) return;
-    
+
     this.inputEl.value = '';
     this.inputEl.disabled = true;
     this.sendBtn.disabled = true;
-    
+
     this.addMessage('user', message);
-    
+
     const thinkingEl = this.chatEl.createDiv({ cls: 'chat-message thinking' });
     thinkingEl.textContent = '🤔 Thinking...';
-    
+
+    // Get selected reasoning effort (default to 'low')
+    const reasoningEffort = this.reasoningSelect?.value || 'low';
+
     try {
-      const agentLoop = new AgentLoop(this.plugin, message);
-      
+      const agentLoop = new AgentLoop(this.plugin, message, reasoningEffort);
+
       const result = await agentLoop.run({
         onUpdate: (msg) => {
           thinkingEl.textContent = `🤔 ${msg}`;
@@ -1802,9 +2132,9 @@ class ChatView extends ItemView {
       
       if (result.success) {
         this.addMessage('assistant', result.finalOutput);
-        
+
         if (result.usage) {
-          this.addUsageStats(result.usage, result.iterations);
+          this.addUsageStats(result.usage, result.iterations, result.elapsedMs);
         }
       } else {
         this.addMessage('error', result.error || 'Agent failed');
@@ -1861,27 +2191,47 @@ class ChatView extends ItemView {
     return msgEl;
   }
   
-  addUsageStats(usage, iterations) {
-    const cached = usage.input_tokens_details?.cached_tokens || 0;
-    const input = usage.input_tokens || 0;
-    const output = usage.output_tokens || 0;
-    
+  addUsageStats(usage, iterations, elapsedMs = 0) {
+    // Token breakdown (now showing totals across all API calls)
+    const cachedTokens = usage.total_cached_tokens || 0;
+    const totalInput = usage.total_input_tokens || 0;
+    const freshTokens = totalInput - cachedTokens;
+    const outputTokens = usage.total_output_tokens || 0;
+    const reasoningTokens = usage.total_reasoning_tokens || 0;
+
+    // Cache efficiency metrics
+    const cacheHitRate = totalInput > 0 ? ((cachedTokens / totalInput) * 100).toFixed(1) : '0.0';
+
+    // Pricing (cached tokens get 90% discount)
     const pricing = PRICING['gpt-5-nano'];
-    
-    const costCached = (cached / 1_000_000) * pricing.cache_in;
-    const costInput = (input / 1_000_000) * pricing.input;
-    const costOutput = (output / 1_000_000) * pricing.output;
-    const costTotal = costCached + costInput + costOutput;
-    
-    const statsText = `--- Stats ---
-Iterations: ${iterations}
-Cached: ${cached.toLocaleString()} ($${costCached.toFixed(6)})
-Input:  ${input.toLocaleString()} ($${costInput.toFixed(6)})
-Output: ${output.toLocaleString()} ($${costOutput.toFixed(6)})
-Total:  $${costTotal.toFixed(6)}`;
-    
+    const costCached = (cachedTokens / 1_000_000) * pricing.input * 0.1;
+    const costFresh = (freshTokens / 1_000_000) * pricing.input;
+    const costOutput = (outputTokens / 1_000_000) * pricing.output;
+    const costTotal = costCached + costFresh + costOutput;
+
+    // Calculate savings from caching
+    const costWithoutCache = ((totalInput / 1_000_000) * pricing.input) + costOutput;
+    const savings = costWithoutCache - costTotal;
+    const savingsPercent = costWithoutCache > 0 ? ((savings / costWithoutCache) * 100).toFixed(1) : '0.0';
+
+    // Timing
+    const elapsedSec = (elapsedMs / 1000).toFixed(2);
+
+    // Format as list
+    const statsLines = [
+      '--- Stats (Total Across All API Calls) ---',
+      `• Iterations: ${iterations}`,
+      `• Time: ${elapsedSec}s`,
+      `• Cache Efficiency: ${cacheHitRate}% hit rate (saved $${savings.toFixed(6)} / ${savingsPercent}%)`,
+      `• Tokens:`,
+      `  - Cached input: ${cachedTokens.toLocaleString()} ($${costCached.toFixed(6)})`,
+      `  - Fresh input: ${freshTokens.toLocaleString()} ($${costFresh.toFixed(6)})`,
+      `  - Output: ${outputTokens.toLocaleString()} (${reasoningTokens.toLocaleString()} reasoning) ($${costOutput.toFixed(6)})`,
+      `• Total Cost: $${costTotal.toFixed(6)}`
+    ];
+
     const statsEl = this.chatEl.createDiv({ cls: 'chat-message stats' });
-    statsEl.textContent = statsText;
+    statsEl.textContent = statsLines.join('\n');
     this.scrollToBottom();
   }
   
@@ -1993,7 +2343,38 @@ class AIAgentSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }
         }));
-    
+
+    new Setting(containerEl)
+      .setName('Auto-Indexing')
+      .setDesc('Automatically index new and modified files')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.autoIndexing)
+        .onChange(async (value) => {
+          this.plugin.settings.autoIndexing = value;
+          await this.plugin.saveSettings();
+
+          // Restart or stop file watcher
+          if (value) {
+            this.plugin.ragSystem.startFileWatcher();
+          } else {
+            this.plugin.ragSystem.stopFileWatcher();
+          }
+        }));
+
+    new Setting(containerEl)
+      .setName('Auto-Index Delay')
+      .setDesc('Wait time (seconds) after file modification before indexing')
+      .addText(text => text
+        .setPlaceholder('30')
+        .setValue(String(this.plugin.settings.autoIndexDelay / 1000))
+        .onChange(async (value) => {
+          const num = parseInt(value);
+          if (!isNaN(num) && num > 0) {
+            this.plugin.settings.autoIndexDelay = num * 1000;
+            await this.plugin.saveSettings();
+          }
+        }));
+
     containerEl.createEl('h3', { text: 'About' });
     
     const infoDiv = containerEl.createDiv();
@@ -2024,7 +2405,14 @@ class AIAgentPlugin extends Plugin {
     this.contextBuilder = new ContextBuilder(this);
     this.toolManager = new ToolManager(this);
     this.apiHandler = new APIHandler(this);
-    
+
+    // Load saved embeddings from disk
+    await this.ragSystem.loadEmbeddings();
+
+    // Start file watcher for live indexing
+    // Note: File watcher will catch any changes via modify events - no need to check on startup
+    this.ragSystem.startFileWatcher();
+
     this.registerView(VIEW_TYPE, (leaf) => new ChatView(leaf, this));
     
     this.addRibbonIcon('bot', 'Open AI Agent', () => {
@@ -2120,6 +2508,7 @@ class AIAgentPlugin extends Plugin {
   
   onunload() {
     console.log('Unloading AI Agent Plugin');
+    this.ragSystem.stopFileWatcher();
   }
 }
 

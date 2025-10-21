@@ -1,0 +1,12 @@
+# Plugin data files (contain API keys and user-specific settings)
+data.json
+
+# Embeddings cache (contains user vault data)
+embeddings.json
+
+# Node modules (if any)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
