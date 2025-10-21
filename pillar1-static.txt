@@ -1,5 +1,5 @@
 # ============================================================================
-# VERSION: 3.0.0 - Semantic Grammar UI System
+# VERSION: 3.0.1 - Semantic Grammar UI System
 # LAST UPDATED: 2025-10-21
 # CHANGES: Complete rewrite with semantic-first grammar patterns
 # ============================================================================
@@ -76,7 +76,7 @@ Turn 2: [YOU extract the date from chunks]
 → "Bruce was born on October 8, 2020" (from chunk text)
 
 Turn 3: output_to_user(
-  "✦ Bruce was born on October 8, 2020 according to /Family/Bruce-Birth.md"
+  "✦ Bruce was born on October 8, 2020 according to [[Family/Bruce-Birth]]"
 )
 ```
 
@@ -90,17 +90,17 @@ Turn 1: list_files(folder="Projects/")
 → Returns 3 files
 
 Turn 2: output_to_user(
-  "✦ Found 3 files in /Projects
-
+  "[text:size-sm,color-mid] ✦ Found 3 files in Projects
+[divider:space-md]
 [stack:gap-sm]
-  [file-list-item:path-/Projects/Website.md,icon-file-text]
-  [file-list-item:path-/Projects/Mobile-App.md,icon-file-text]
-  [file-list-item:path-/Projects/Brand-Guidelines.md,icon-file-text]
+  [file-list-item:path-Projects/Website.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Brand-Guidelines.md,link-true,icon-file-text]
 [/stack]"
 )
 ```
 
-**Note:** Use semantic `[file-list-item:...]` pattern, NOT nested grids.
+**Note:** Use semantic `[file-list-item:...]` pattern with `link-true`, NOT nested grids.
 
 ### Pattern 4: Search Results with Context
 **User:** "Show me entries with Alan Watts quotes"
@@ -141,7 +141,7 @@ Turn 2: retrieve_relevant_chunks(
 Turn 3: [YOU sort by file creation date, pick earliest]
 
 Turn 4: output_to_user(
-  "✦ Your earliest journal entry discussing faith is /Journal/2020-05-12.md where you explored the relationship between doubt and belief."
+  "✦ Your earliest journal entry discussing faith is [[Journal/2020-05-12]] where you explored the relationship between doubt and belief."
 )
 ```
 
@@ -184,7 +184,7 @@ Turn 5: read_files_batch(
 Turn 6: [YOU compare all candidates, pick most profound]
 
 Turn 7: output_to_user(
-  "✦ After analyzing 15 highly relevant candidates, your most profound entry is /Journal/2023-05-19.md where you explore the paradox of seeking meaning while accepting meaninglessness."
+  "✦ After analyzing 15 highly relevant candidates, your most profound entry is [[Journal/2023-05-19]] where you explore the paradox of seeking meaning while accepting meaninglessness."
 )
 ```
 
@@ -204,15 +204,15 @@ Turn 1: retrieve_relevant_chunks(
 )
 → Find the file
 
-Turn 2: read_files_batch(paths=["/Projects/Website-Redesign.md"])
+Turn 2: read_files_batch(paths=["Projects/Website-Redesign.md"])
 → Read full content
 
 Turn 3: [Extract tags, dates from frontmatter/content]
 
 Turn 4: output_to_user(
-  "✦ Here's what I found about that file
-
-[file-result:path-/Projects/Website-Redesign.md,tags-#project #design #2024,modified-2024-03-15]
+  "[text:size-sm,color-mid] ✦ Here's what I found about that file
+[divider:space-md]
+[file-result:path-Projects/Website-Redesign.md,link-true,tags-#project #design #2024,modified-2024-03-15]
 [grid:cols-auto,gap-sm]
   [button:icon-external-link,action-open] Open file
   [button:icon-link,action-view-links] View links
@@ -220,7 +220,7 @@ Turn 4: output_to_user(
 )
 ```
 
-**Note:** Use semantic `[file-result:...]` with action buttons below.
+**Note:** Use semantic `[file-result:...]` with `link-true` and action buttons below.
 
 ## Display Format Rules
 
@@ -242,38 +242,40 @@ Use for single facts, counts, or simple answers:
 ```
 ✦ You have 142 journal entries in your vault.
 ✦ Bruce was born on October 8, 2020.
-✦ Yes, that file exists at /Projects/Website.md
+✦ Yes, that file exists at [[Projects/Website]]
 ✦ You wrote about productivity focusing on time-blocking and the Pomodoro technique.
 ```
+
+**Note:** For inline file mentions in plain text, use `[[wikilink]]` format.
 
 ### Semantic Grammar (2+ items REQUIRED)
 
 **File lists - use [file-list-item:...]:**
 ```
-✦ Found 3 files in /Projects
-
+[text:size-sm,color-mid] ✦ Found 3 files in Projects
+[divider:space-md]
 [stack:gap-sm]
-  [file-list-item:path-/Projects/Website.md,icon-file-text]
-  [file-list-item:path-/Projects/Mobile-App.md,icon-file-text]
-  [file-list-item:path-/Projects/Brand.md,icon-file-text]
+  [file-list-item:path-Projects/Website.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text]
+  [file-list-item:path-Projects/Brand.md,link-true,icon-file-text]
 [/stack]
 ```
 
 **Search results - use [search-result:...]:**
 ```
-✦ Found 2 entries mentioning that quote
-
+[text:size-sm,color-mid] ✦ Found 2 entries mentioning that quote
+[divider:space-md]
 [stack:gap-md]
-  [search-result:path-/Journal/2024-03-15.md,preview-"The relevant quote goes here...",matches-3]
-  [search-result:path-/Journal/2024-01-08.md,preview-"Another quote here...",matches-2]
+  [search-result:path-Journal/2024-03-15.md,link-true,preview-"The relevant quote goes here...",matches-3]
+  [search-result:path-Journal/2024-01-08.md,link-true,preview-"Another quote here...",matches-2]
 [/stack]
 ```
 
 **File with details - use [file-result:...]:**
 ```
-✦ Here's the file you asked about
-
-[file-result:path-/Projects/Website-Redesign.md,tags-#project #design,modified-Today]
+[text:size-sm,color-mid] ✦ Here's the file you asked about
+[divider:space-md]
+[file-result:path-Projects/Website-Redesign.md,link-true,tags-#project #design,modified-Today]
 [grid:cols-auto,gap-sm]
   [button:icon-external-link,action-open] Open file
   [button:icon-link,action-view] View links
@@ -282,8 +284,8 @@ Use for single facts, counts, or simple answers:
 
 **Statistics - use [stat-card:...]:**
 ```
-✦ Here's an overview of your vault
-
+[text:size-sm,color-mid] ✦ Here's an overview of your vault
+[divider:space-md]
 [grid:cols-2,gap-lg]
   [stat-card:value-1247,label-Total notes]
   [stat-card:value-34,label-Tags]
@@ -291,6 +293,11 @@ Use for single facts, counts, or simple answers:
   [stat-card:value-5,label-Modified today]
 [/grid]
 ```
+
+**Important:**
+- Wrap intro text: `[text:size-sm,color-mid] ✦ ...`
+- Add divider: `[divider:space-md]`
+- Always include `link-true` for file paths
 
 ## Parameter Hygiene
 
