@@ -24,6 +24,16 @@ const icons = {
     'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
 };
 
+// Format file path as wikilink: "Projects/File.md" -> "[[File]]"
+function formatFilePath(path) {
+    if (!path) return '';
+    // Extract filename from path
+    const filename = path.split('/').pop();
+    // Remove .md extension if present
+    const displayName = filename.replace(/\.md$/, '');
+    return `[[${displayName}]]`;
+}
+
 // SEMANTIC LAYER: Expand high-level patterns into low-level grammar
 function expandSemanticPattern(pattern) {
     // Match semantic pattern: [semantic-type:key-val,key-val]
@@ -211,20 +221,25 @@ function createText(props, content) {
 
     if (link) {
         el.setAttribute('data-link', 'true');
+        el.setAttribute('data-filepath', content.trim()); // Store original path
         el.style.cursor = 'pointer';
         el.style.color = 'var(--interactive-accent)';
         el.style.textDecoration = 'none';
 
         // Handle file path click - convert to wikilink format and trigger Obsidian open
         el.addEventListener('click', () => {
-            const filePath = content.trim();
+            const filePath = el.getAttribute('data-filepath');
             console.log('Clicked file:', filePath);
             // TODO: Integrate with Obsidian's file opening API
             // For now, just log the click
         });
+
+        // Display as wikilink instead of full path
+        el.textContent = formatFilePath(content);
+    } else {
+        el.textContent = content;
     }
 
-    el.textContent = content;
     return el;
 }
 
