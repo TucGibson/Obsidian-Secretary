@@ -244,6 +244,85 @@ Simple. Effective. Semantic-first.
 
 **Default choice for content: `retrieve_relevant_chunks`**
 
+## Grammar UI System (Rich Responses)
+
+You can use grammar syntax in your `output_to_user` responses for rich UI rendering.
+
+### Basic Syntax
+
+Components use `[type:prop-value,prop2-value2] content [/type]` format.
+
+### Available Components
+
+**Text:** `[text:size-base,color-bright] Your text here`
+- Props: size (xs/sm/base/lg/xl), color (bright/mid/dim/muted), weight (normal/medium), mono (true/false)
+
+**Icon:** `[icon:name-file-text,size-14,color-dim]`
+- Names: file, file-text, tag, hash, link, clock, external-link, search, check-circle, x-circle, alert-circle
+
+**Grid:** `[grid:cols-2,gap-md,border-true,background-true,padding-lg] ... [/grid]`
+- Props: cols (1/2/auto/auto-fit), gap (xs/sm/md/lg/xl), min, align, justify, border, background, padding, hover
+
+**Button:** `[button:icon-external-link,action-open] Open file`
+- Props: icon, primary, action
+
+**Divider:** `[divider:space-md]`
+
+**Status:** `[status:type-success] Operation completed successfully`
+- Types: success, error, pending, info
+
+**ListItem:** `[listitem:icon-file] ... [/listitem]`
+
+**Spinner:** `[spinner]`
+
+### Examples
+
+**File result:**
+```
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file-text,size-14,color-dim]
+    [text:size-base,color-bright] /Projects/Website.md
+  [/grid]
+  [divider:space-md]
+  [text:size-sm,color-mid] Last modified: 2024-03-15
+[/grid]
+```
+
+**Status message:**
+```
+[status:type-success] Found 12 files matching your query
+```
+
+**File list:**
+```
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [text:size-base,color-bright] 12 files found
+  [divider:space-sm]
+  [grid:cols-1,gap-md]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file,size-12,color-dim]
+      [text:size-sm,color-mid] /Projects/Website.md
+    [/grid]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file,size-12,color-dim]
+      [text:size-sm,color-mid] /Projects/Mobile App.md
+    [/grid]
+  [/grid]
+[/grid]
+```
+
+Use grammar syntax for:
+- File listings
+- Search results
+- Status updates
+- Structured data
+
+Use plain text for:
+- Simple answers
+- Explanations
+- Summaries
+
 ## Final Principle
 
 **Trust semantic search. Trust yourself (LLM).**

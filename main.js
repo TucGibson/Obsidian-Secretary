@@ -11,6 +11,7 @@
 // ============================================================================
 
 const { Plugin, Notice, ItemView, PluginSettingTab, Setting, requestUrl } = require('obsidian');
+const { renderGrammar } = require('./grammar-ui');
 
 // ============================================================================
 // CONSTANTS
@@ -1854,26 +1855,25 @@ class ChatView extends ItemView {
     container.addClass('chat-view');
 
     const header = container.createDiv({ cls: 'chat-header' });
-    header.createEl('strong', { text: 'AI Agent - Semantic RAG' });
 
-    // Version display
-    const versionEl = header.createEl('span', {
+    // Left side - title and version
+    const headerLeft = header.createDiv({ cls: 'chat-header-left' });
+    headerLeft.createEl('strong', { text: 'AI Agent - Semantic RAG' });
+    headerLeft.createEl('span', {
       cls: 'version-tag',
       text: 'v2.0.17'
     });
-    versionEl.style.fontSize = '11px';
-    versionEl.style.opacity = '0.7';
-    versionEl.style.marginLeft = '10px';
 
-    // Index button
-    const indexBtn = header.createEl('button', {
+    // Right side - buttons
+    const headerButtons = header.createDiv({ cls: 'chat-header-buttons' });
+
+    const indexBtn = headerButtons.createEl('button', {
       cls: 'chat-btn',
       text: 'Index Vault'
     });
     indexBtn.onclick = () => this.indexVault();
-    
-    // Reset button
-    const resetBtn = header.createEl('button', {
+
+    const resetBtn = headerButtons.createEl('button', {
       cls: 'chat-btn',
       text: 'New Chat'
     });
@@ -2186,9 +2186,38 @@ class ChatView extends ItemView {
   
   addMessage(role, text) {
     const msgEl = this.chatEl.createDiv({ cls: `chat-message ${role}` });
-    msgEl.textContent = text;
+
+    // Check if this is an assistant message with grammar syntax
+    if (role === 'assistant' && this.isGrammarSyntax(text)) {
+      try {
+        const grammarEl = renderGrammar(text, (action, props) => {
+          console.log('Grammar action:', action, props);
+          // Handle grammar actions here (e.g., button clicks)
+          new Notice(`Action: ${action}`);
+        });
+        msgEl.appendChild(grammarEl);
+      } catch (error) {
+        console.error('[ChatView] Grammar rendering error:', error);
+        // Fallback to plain text if grammar rendering fails
+        msgEl.textContent = text;
+      }
+    } else {
+      msgEl.textContent = text;
+    }
+
     this.scrollToBottom();
     return msgEl;
+  }
+
+  /**
+   * Check if text contains grammar syntax
+   */
+  isGrammarSyntax(text) {
+    if (typeof text !== 'string') return false;
+
+    // Check for grammar patterns like [text:...], [grid:...], etc.
+    const grammarPattern = /^\[(?:text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
+    return grammarPattern.test(text.trim());
   }
   
   addUsageStats(usage, iterations, elapsedMs = 0) {
