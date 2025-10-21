@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.14 - FIX: Prevent vault wipe on startup
-// LAST UPDATED: 2025-10-20
-// CHANGES: Remove checkModifiedFiles() call on startup (vault not loaded yet)
+// VERSION: 2.0.15 - Add vault folder structure to context
+// LAST UPDATED: 2025-10-21
+// CHANGES: Include full folder structure in Pillar 2 for better path navigation
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,13 +82,15 @@ class ContextBuilder {
   }
   
   buildPillar2() {
-    const vaultStats = this.plugin.ragSystem?.getIndexStats() || { 
-      totalFiles: 0, 
-      totalChunks: 0, 
+    const vaultStats = this.plugin.ragSystem?.getIndexStats() || {
+      totalFiles: 0,
+      totalChunks: 0,
       indexed: false,
       embeddingMethod: 'Not loaded'
     };
-    
+
+    const folderStructure = this.getVaultFolderStructure();
+
     return `# WHAT YOU KNOW
 
 ## Vault Index Status
@@ -97,11 +99,66 @@ class ContextBuilder {
 - Search Method: ${vaultStats.embeddingMethod}
 - Index Ready: ${vaultStats.indexed ? 'YES' : 'NO'}
 
+## Vault Folder Structure
+${folderStructure}
+
 ## Memory System
 (Long-term memory not yet implemented)
 
 ## Available Context
 You have semantic search via embeddings. Use retrieve_relevant_chunks for meaning-based queries after narrowing with list_files or search_lexical.`;
+  }
+
+  getVaultFolderStructure() {
+    // Get all folders in the vault
+    const allFiles = this.plugin.app.vault.getAllLoadedFiles();
+    const folders = allFiles.filter(f => f.children); // Folders have children property
+
+    if (folders.length === 0) {
+      return 'No folders found in vault.';
+    }
+
+    // Build a tree structure
+    const tree = {};
+
+    for (const folder of folders) {
+      const path = folder.path;
+      if (!path) continue; // Skip root
+
+      const parts = path.split('/');
+      let current = tree;
+
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+    }
+
+    // Format as compact list
+    const formatTree = (obj, prefix = '', isRoot = true) => {
+      const entries = Object.entries(obj);
+      if (entries.length === 0) return '';
+
+      let result = '';
+      entries.forEach(([key, children], index) => {
+        const isLast = index === entries.length - 1;
+        const fullPath = prefix ? `${prefix}/${key}` : key;
+
+        result += `${fullPath}/\n`;
+
+        // Recursively add children (limit depth to 2 levels for compactness)
+        if (Object.keys(children).length > 0 && prefix.split('/').length < 2) {
+          result += formatTree(children, fullPath, false);
+        }
+      });
+
+      return result;
+    };
+
+    return formatTree(tree);
   }
   
   getDefaultPillar1() {
@@ -1828,7 +1885,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.14'
+      text: 'v2.0.15'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
