@@ -1,8 +1,557 @@
 // ============================================================================
-// VERSION: 2.0.17 - Redesigned input area for better UX
+// VERSION: 3.0.1 - Semantic Grammar UI System
 // LAST UPDATED: 2025-10-21
-// CHANGES: Modern chat UI with auto-expand textarea, inline send button, compact controls
+// CHANGES: Enhanced semantic patterns with link functionality
 // ============================================================================
+
+///// PART 0 START - GRAMMAR UI SYSTEM ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// EXACT COPY from grammar-ui-demo.html
+// Lucide icons as SVG strings
+const icons = {
+    'file-text': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+    'file': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+    'tag': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
+    'link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>',
+    'clock': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+    'external-link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+    'move': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>',
+    'hash': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>',
+    'alert-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+    'check-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+    'x-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+    'search': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+    'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
+};
+
+// Format file path as wikilink: "Projects/File.md" -> "File" (no brackets, clean display)
+// Supports alias syntax: "File|Display Name" -> "Display Name"
+function formatFilePath(path) {
+    if (!path) return '';
+
+    // Check if there's an alias (pipe syntax)
+    if (path.includes('|')) {
+        const parts = path.split('|');
+        return parts[1].trim(); // Return the alias part
+    }
+
+    // Extract filename from path
+    const filename = path.split('/').pop();
+    // Remove .md extension if present
+    const displayName = filename.replace(/\.md$/, '');
+    return displayName; // Return without brackets
+}
+
+// SEMANTIC LAYER: Expand high-level patterns into low-level grammar
+function expandSemanticPattern(pattern) {
+    // Match semantic pattern: [semantic-type:key-val,key-val]
+    const match = pattern.match(/^\[(file-result|search-result|tag-group|stat-card|file-list-item):(.*?)\]/);
+    if (!match) return null;
+
+    const [, type, propsStr] = match;
+
+    // Parse props from "key-val,key-val" format
+    const props = {};
+    if (propsStr) {
+        propsStr.split(',').forEach(prop => {
+            const parts = prop.trim().split('-');
+            const key = parts[0];
+            const val = parts.slice(1).join('-');
+            props[key] = val;
+        });
+    }
+
+    switch (type) {
+        case 'file-result':
+            const linkAttr1 = props.link === 'true' ? ',link-true' : '';
+            return `[card]
+  [stack:gap-sm]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file-text,size-14,color-dim]
+      [text:size-sm,color-bright${linkAttr1}] ${props.path || 'Untitled'}
+    [/grid]
+    ${props.tags ? `[grid:cols-auto,gap-sm]
+      [icon:name-tag,size-12,color-dim]
+      [text:size-sm,color-dim] ${props.tags}
+    [/grid]` : ''}
+    ${props.modified ? `[grid:cols-auto,gap-sm]
+      [icon:name-clock,size-12,color-dim]
+      [text:size-sm,color-dim] ${props.modified}
+    [/grid]` : ''}
+  [/stack]
+[/card]`;
+
+        case 'search-result':
+            const linkAttr2 = props.link === 'true' ? ',link-true' : '';
+            return `[card:hover-true]
+  [stack:gap-sm]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file-text,size-12,color-dim]
+      [text:size-sm,color-mid${linkAttr2}] ${props.path || 'Untitled'}
+    [/grid]
+    ${props.preview ? `[text:size-sm,color-dim] ${props.preview}` : ''}
+    ${props.matches ? `[badge:variant-accent] ${props.matches} matches` : ''}
+  [/stack]
+[/card]`;
+
+        case 'tag-group':
+            const tags = props.tags ? props.tags.split('|') : [];
+            const tagCards = tags.map(tag => {
+                const [name, count] = tag.split(':');
+                return `[card]
+    [grid:cols-auto,gap-sm]
+      [icon:name-hash,size-12,color-dim]
+      [text:size-sm,color-mid] ${name}
+      ${count ? `[text:size-sm,color-muted] (${count})` : ''}
+    [/grid]
+  [/card]`;
+            }).join('\n  ');
+            return `[grid:cols-auto-fit,min-80px,gap-sm]
+  ${tagCards}
+[/grid]`;
+
+        case 'stat-card':
+            return `[card]
+  [stack:gap-xs]
+    [text:size-xl,color-bright] ${props.value || '0'}
+    [text:size-sm,color-dim] ${props.label || 'Stat'}
+  [/stack]
+[/card]`;
+
+        case 'file-list-item':
+            const linkAttr3 = props.link === 'true' ? ',link-true' : '';
+            return `[grid:cols-auto,gap-sm,align-center]
+  [icon:name-${props.icon || 'file'},size-12,color-dim]
+  [text:size-sm,color-mid${linkAttr3}] ${props.path || 'Untitled'}
+  ${props.badge ? `[badge] ${props.badge}` : ''}
+[/grid]`;
+
+        default:
+            return null;
+    }
+}
+
+// Grammar Parser - EXACT from grammar-ui-demo.html
+function parseGrammar(grammar) {
+    // First pass: expand semantic patterns
+    let expanded = grammar;
+    const semanticPattern = /\[(file-result|search-result|tag-group|stat-card|file-list-item):[^\]]+\]/g;
+    const matches = grammar.match(semanticPattern);
+
+    if (matches) {
+        matches.forEach(match => {
+            const expandedPattern = expandSemanticPattern(match);
+            if (expandedPattern) {
+                expanded = expanded.replace(match, expandedPattern);
+            }
+        });
+    }
+
+    // Continue with normal parsing
+    const normalized = expanded
+        .replace(/\]\s*\[/g, ']\n[')
+        .trim();
+
+    const lines = normalized.split('\n');
+    const elements = [];
+    const stack = [];
+
+    for (let line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        if (trimmed.startsWith('[/')) {
+            if (stack.length > 0) {
+                const completed = stack.pop();
+                if (stack.length === 0) {
+                    elements.push(completed);
+                } else {
+                    stack[stack.length - 1].children.push(completed);
+                }
+            }
+            continue;
+        }
+
+        const tagMatch = trimmed.match(/^\[(\w+)(?::([^\]]+))?\]\s*(.*)/);
+        if (tagMatch) {
+            const [, type, propsStr, contentAfterTag] = tagMatch;
+            const props = {};
+
+            if (propsStr) {
+                propsStr.split(',').forEach(prop => {
+                    const parts = prop.trim().split('-');
+                    const key = parts[0];
+                    const val = parts.slice(1).join('-') || true;
+                    props[key] = val;
+                });
+            }
+
+            const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
+
+            const containerTypes = ['grid', 'container', 'stack', 'card', 'listitem'];
+            if (!contentAfterTag && containerTypes.includes(type)) {
+                stack.push(element);
+            } else if (stack.length > 0) {
+                stack[stack.length - 1].children.push(element);
+            } else {
+                elements.push(element);
+            }
+        }
+    }
+
+    while (stack.length > 0) {
+        const completed = stack.pop();
+        if (stack.length === 0) {
+            elements.push(completed);
+        } else {
+            stack[stack.length - 1].children.push(completed);
+        }
+    }
+
+    return elements;
+}
+
+// Component creators - EXACT from grammar-ui-demo.html
+function createText(props, content, app) {
+    const el = document.createElement('div');
+    el.className = 'text';
+
+    const size = props.size || 'base';
+    const color = props.color || 'mid';
+    const weight = props.weight;
+    const mono = props.mono;
+    const link = props.link === 'true';
+
+    el.classList.add(`text-${size}`);
+    el.classList.add(`text-${color}`);
+    if (weight === 'medium') el.classList.add('text-medium');
+    if (mono) el.classList.add('text-mono');
+
+    if (link) {
+        el.setAttribute('data-link', 'true');
+        el.setAttribute('data-filepath', content.trim()); // Store original path
+        el.style.cursor = 'pointer';
+        el.style.color = 'var(--interactive-accent)';
+        el.style.textDecoration = 'none';
+
+        // Handle file path click - open file in Obsidian
+        el.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const filePath = el.getAttribute('data-filepath');
+
+            // Extract file path from alias syntax if present (File|Alias -> File)
+            const cleanPath = filePath.includes('|') ? filePath.split('|')[0].trim() : filePath;
+
+            if (app && app.workspace) {
+                try {
+                    // Use Obsidian's API to open the file
+                    await app.workspace.openLinkText(cleanPath, '', false);
+                } catch (error) {
+                    console.error('Failed to open file:', error);
+                    new Notice(`Could not open file: ${cleanPath}`);
+                }
+            } else {
+                console.warn('App context not available for file opening');
+            }
+        });
+
+        // Display as wikilink (no brackets, supports aliases)
+        el.textContent = formatFilePath(content);
+    } else {
+        el.textContent = content;
+    }
+
+    return el;
+}
+
+function createIcon(props) {
+    const name = props.name;
+    const size = props.size || 14;
+    const color = props.color || 'primary';
+
+    if (!name || !icons[name]) {
+        console.warn(`Icon "${name}" not found`);
+        return document.createElement('span');
+    }
+
+    const el = document.createElement('span');
+    el.className = `icon icon-${color}`;
+    el.innerHTML = icons[name].replace(/SIZE/g, size);
+
+    return el;
+}
+
+function createGrid(props, children) {
+    const el = document.createElement('div');
+    el.className = 'grid';
+
+    const cols = props.cols || '1';
+    const gap = props.gap || 'md';
+    const align = props.align || 'center';
+    const justify = props.justify || 'start';
+    const border = props.border === 'true';
+    const background = props.background === 'true';
+    const padding = props.padding;
+    const hover = props.hover === 'true';
+    const min = props.min;
+
+    if (cols === 'auto') {
+        el.classList.add('grid-auto');
+    } else if (cols === 'auto-fit' && min) {
+        el.style.gridTemplateColumns = `repeat(auto-fit, minmax(${min}, 1fr))`;
+    } else {
+        el.classList.add(`grid-${cols}`);
+    }
+
+    el.classList.add(`gap-${gap}`);
+    el.classList.add(`align-${align}`);
+    el.classList.add(`justify-${justify}`);
+
+    if (border) el.classList.add('grid-border');
+    if (background) el.classList.add('grid-bg');
+    if (padding) el.classList.add(`padding-${padding}`);
+    if (hover) el.classList.add('grid-hover');
+
+    children.forEach(child => el.appendChild(child));
+
+    return el;
+}
+
+function createButton(props, content, onAction) {
+    const el = document.createElement('button');
+    el.className = 'btn';
+
+    const icon = props.icon;
+    const primary = props.primary === 'true';
+    const action = props.action;
+
+    if (primary) el.classList.add('btn-primary');
+
+    if (icon) {
+        const iconEl = createIcon({ name: icon, size: 12 });
+        el.appendChild(iconEl);
+    }
+
+    const textEl = document.createElement('span');
+    textEl.textContent = content;
+    el.appendChild(textEl);
+
+    if (action && onAction) {
+        el.onclick = () => onAction(action, props);
+    }
+
+    return el;
+}
+
+function createDivider(props) {
+    const el = document.createElement('div');
+    const direction = props.direction || 'h';
+    const space = props.space || 'lg';
+
+    el.className = direction === 'h' ? 'divider-h' : 'divider-v';
+    el.classList.add(`divider-space-${space}`);
+
+    return el;
+}
+
+function createListItem(props, children) {
+    const el = document.createElement('div');
+    el.className = 'list-item';
+
+    const icon = props.icon;
+    const hover = props.hover !== 'false';
+
+    if (icon) {
+        el.classList.add('list-item-with-icon');
+        const iconEl = createIcon({ name: icon, size: 12, color: 'dim' });
+        el.appendChild(iconEl);
+    }
+
+    if (hover) el.classList.add('list-item-hover');
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.minWidth = '0';
+    children.forEach(child => contentDiv.appendChild(child));
+    el.appendChild(contentDiv);
+
+    return el;
+}
+
+function createStatus(props, content, app) {
+    const type = props.type || 'info';
+    const el = document.createElement('div');
+    el.className = `status status-${type}`;
+
+    const iconNames = {
+        success: 'check-circle',
+        error: 'x-circle',
+        pending: 'clock',
+        info: 'alert-circle'
+    };
+
+    const iconEl = createIcon({ name: iconNames[type], size: 14 });
+    el.appendChild(iconEl);
+
+    const textEl = createText({ size: 'sm', color: 'mid' }, content, app);
+    el.appendChild(textEl);
+
+    return el;
+}
+
+function createSpinner() {
+    const el = document.createElement('div');
+    el.className = 'spinner';
+    return el;
+}
+
+function createStack(props, children) {
+    const el = document.createElement('div');
+    el.className = 'stack';
+
+    const direction = props.direction || 'vertical';
+    const gap = props.gap || 'md';
+    const align = props.align || 'stretch';
+
+    // Apply direction via data attribute for CSS
+    if (direction === 'horizontal') {
+        el.setAttribute('data-direction', 'horizontal');
+    }
+
+    // Dynamic properties via inline styles
+    el.style.gap = `var(--spacing-${gap})`;
+    el.style.alignItems = align;
+
+    children.forEach(child => el.appendChild(child));
+
+    return el;
+}
+
+function createCard(props, children) {
+    const el = document.createElement('div');
+    el.className = 'card';
+
+    const hover = props.hover === 'true';
+
+    // Base card styling comes from CSS
+    // Only add hover behavior if requested
+    if (hover) {
+        el.style.cursor = 'pointer';
+    }
+
+    children.forEach(child => el.appendChild(child));
+
+    return el;
+}
+
+function createBadge(props, content) {
+    const el = document.createElement('span');
+    el.className = 'badge';
+
+    const variant = props.variant || 'default';
+
+    // Use data-variant attribute for CSS styling
+    if (variant !== 'default') {
+        el.setAttribute('data-variant', variant);
+    }
+
+    el.textContent = content;
+
+    return el;
+}
+
+// Grammar Renderer - EXACT from grammar-ui-demo.html
+function renderGrammar(grammar, onAction, app) {
+    const elements = parseGrammar(grammar);
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = 'var(--spacing-md)';
+
+    elements.forEach(element => {
+        const rendered = renderElement(element, onAction, app);
+        if (rendered) container.appendChild(rendered);
+    });
+
+    return container;
+}
+
+function renderElement(element, onAction, app) {
+    const { type, props, content, children } = element;
+
+    switch (type) {
+        case 'text':
+            return createText(props, content, app);
+
+        case 'icon':
+            return createIcon(props);
+
+        case 'grid':
+        case 'container':
+            const childElements = [];
+            if (content) {
+                childElements.push(createText({}, content, app));
+            }
+            children.forEach(child => {
+                const rendered = renderElement(child, onAction, app);
+                if (rendered) childElements.push(rendered);
+            });
+            return createGrid(props, childElements);
+
+        case 'button':
+            return createButton(props, content, onAction);
+
+        case 'divider':
+            return createDivider(props);
+
+        case 'listitem':
+            const listChildren = [];
+            if (content) {
+                listChildren.push(createText({ size: 'sm', color: 'mid' }, content, app));
+            }
+            children.forEach(child => {
+                const rendered = renderElement(child, onAction, app);
+                if (rendered) listChildren.push(rendered);
+            });
+            return createListItem(props, listChildren);
+
+        case 'status':
+            return createStatus(props, content, app);
+
+        case 'spinner':
+            return createSpinner();
+
+        case 'stack':
+            const stackChildren = [];
+            if (content) {
+                stackChildren.push(createText({}, content, app));
+            }
+            children.forEach(child => {
+                const rendered = renderElement(child, onAction, app);
+                if (rendered) stackChildren.push(rendered);
+            });
+            return createStack(props, stackChildren);
+
+        case 'card':
+            const cardChildren = [];
+            if (content) {
+                cardChildren.push(createText({}, content, app));
+            }
+            children.forEach(child => {
+                const rendered = renderElement(child, onAction, app);
+                if (rendered) cardChildren.push(rendered);
+            });
+            return createCard(props, cardChildren);
+
+        case 'badge':
+            return createBadge(props, content);
+
+        default:
+            return null;
+    }
+}
+
+///// PART 0 END - GRAMMAR UI SYSTEM ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1854,26 +2403,25 @@ class ChatView extends ItemView {
     container.addClass('chat-view');
 
     const header = container.createDiv({ cls: 'chat-header' });
-    header.createEl('strong', { text: 'AI Agent - Semantic RAG' });
 
-    // Version display
-    const versionEl = header.createEl('span', {
+    // Left side - title and version
+    const headerLeft = header.createDiv({ cls: 'chat-header-left' });
+    headerLeft.createEl('strong', { text: 'AI Agent - Semantic RAG' });
+    headerLeft.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.17'
+      text: 'v3.0.1'
     });
-    versionEl.style.fontSize = '11px';
-    versionEl.style.opacity = '0.7';
-    versionEl.style.marginLeft = '10px';
 
-    // Index button
-    const indexBtn = header.createEl('button', {
+    // Right side - buttons
+    const headerButtons = header.createDiv({ cls: 'chat-header-buttons' });
+
+    const indexBtn = headerButtons.createEl('button', {
       cls: 'chat-btn',
       text: 'Index Vault'
     });
     indexBtn.onclick = () => this.indexVault();
-    
-    // Reset button
-    const resetBtn = header.createEl('button', {
+
+    const resetBtn = headerButtons.createEl('button', {
       cls: 'chat-btn',
       text: 'New Chat'
     });
@@ -1883,6 +2431,18 @@ class ChatView extends ItemView {
       this.addMessage('system', '=== New conversation started ===');
       this.updateIndexStatus();
     };
+
+    // Debug mode toggle
+    this.debugMode = false;
+    this.debugBtn = headerButtons.createEl('button', {
+      cls: 'chat-btn',
+      text: 'Debug: OFF'
+    });
+    this.debugBtn.onclick = () => {
+      this.debugMode = !this.debugMode;
+      this.debugBtn.textContent = this.debugMode ? 'Debug: ON' : 'Debug: OFF';
+      this.debugBtn.style.background = this.debugMode ? 'var(--interactive-accent)' : '';
+    };
     
     // Index status
     this.statusEl = container.createDiv({ cls: 'index-status' });
@@ -1891,7 +2451,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.17\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.0.0 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -1901,123 +2461,128 @@ class ChatView extends ItemView {
 
     this.addMessage('system', welcomeMsg);
 
+    // EXACT COPY from Chat UI Template - Input container
     const inputContainer = container.createDiv({ cls: 'chat-input-container' });
-    inputContainer.style.background = 'var(--background-primary)';
-    inputContainer.style.borderTop = '1px solid var(--background-modifier-border)';
 
-    // Input wrapper - exactly like example
+    // Input wrapper
     const inputWrapper = inputContainer.createDiv({ cls: 'input-wrapper' });
-    inputWrapper.style.display = 'flex';
-    inputWrapper.style.alignItems = 'center';
-    inputWrapper.style.padding = '16px 20px';
-    inputWrapper.style.gap = '12px';
-    inputWrapper.style.borderBottom = '1px solid var(--background-modifier-border)';
 
     this.inputEl = inputWrapper.createEl('input', {
       cls: 'message-input',
       attr: { type: 'text', placeholder: 'Send a message' }
     });
-    this.inputEl.style.flex = '1';
-    this.inputEl.style.border = 'none';
-    this.inputEl.style.outline = 'none';
-    this.inputEl.style.fontSize = '15px';
-    this.inputEl.style.color = 'var(--text-normal)';
-    this.inputEl.style.background = 'transparent';
-    this.inputEl.style.fontFamily = 'var(--font-text)';
 
-    this.sendBtn = inputWrapper.createEl('button', {
-      cls: 'send-btn',
-      attr: { 'aria-label': 'Send message' }
-    });
-    this.sendBtn.style.background = 'none';
-    this.sendBtn.style.border = 'none';
-    this.sendBtn.style.cursor = 'pointer';
-    this.sendBtn.style.padding = '4px';
-    this.sendBtn.style.display = 'flex';
-    this.sendBtn.style.alignItems = 'center';
-    this.sendBtn.style.justifyContent = 'center';
-    this.sendBtn.style.color = 'var(--text-muted)';
-    this.sendBtn.style.transition = 'color 0.2s';
-
-    this.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+    this.sendBtn = inputWrapper.createEl('button', { cls: 'send-btn' });
+    this.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
     </svg>`;
 
-    this.sendBtn.onmouseenter = () => {
-      this.sendBtn.style.color = 'var(--text-normal)';
-    };
-    this.sendBtn.onmouseleave = () => {
-      this.sendBtn.style.color = 'var(--text-muted)';
-    };
-
-    // Toolbar - exactly like example
+    // Toolbar
     const toolbar = inputContainer.createDiv({ cls: 'toolbar' });
-    toolbar.style.display = 'flex';
-    toolbar.style.alignItems = 'center';
-    toolbar.style.padding = '12px 20px';
-    toolbar.style.gap = '16px';
 
-    // Reasoning button - follows exact toolbar-btn pattern from example
-    const reasoningBtn = toolbar.createEl('button', { cls: 'toolbar-btn' });
-    reasoningBtn.style.background = 'none';
-    reasoningBtn.style.border = 'none';
-    reasoningBtn.style.cursor = 'pointer';
-    reasoningBtn.style.display = 'flex';
-    reasoningBtn.style.alignItems = 'center';
-    reasoningBtn.style.gap = '6px';
-    reasoningBtn.style.fontSize = '14px';
-    reasoningBtn.style.color = 'var(--text-muted)';
-    reasoningBtn.style.padding = '6px 10px';
-    reasoningBtn.style.borderRadius = '6px';
-    reasoningBtn.style.transition = 'background 0.2s, color 0.2s';
-    reasoningBtn.style.fontFamily = 'inherit';
-
-    const reasoningIcon = reasoningBtn.createEl('span');
-    reasoningIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
-      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
-      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+    // Reasoning dropdown
+    const reasoningDropdown = toolbar.createDiv({ cls: 'custom-dropdown' });
+    const reasoningBtn = reasoningDropdown.createEl('button', { cls: 'toolbar-btn' });
+    reasoningBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
     </svg>`;
+    this.reasoningLabel = reasoningBtn.createEl('span');
+    this.reasoningLabel.textContent = 'Low';
 
-    const reasoningText = reasoningBtn.createEl('span');
-    reasoningText.textContent = 'Reasoning: ';
-
-    this.reasoningSelect = reasoningBtn.createEl('select', { cls: 'reasoning-select' });
-    this.reasoningSelect.style.background = 'none';
-    this.reasoningSelect.style.border = 'none';
-    this.reasoningSelect.style.outline = 'none';
-    this.reasoningSelect.style.cursor = 'pointer';
-    this.reasoningSelect.style.fontSize = '14px';
-    this.reasoningSelect.style.color = 'inherit';
-    this.reasoningSelect.style.fontFamily = 'inherit';
-    this.reasoningSelect.style.padding = '0';
-    this.reasoningSelect.style.margin = '0';
-
-    const options = [
+    this.reasoningMenu = reasoningDropdown.createDiv({ cls: 'dropdown-menu' });
+    const reasoningOptions = [
       { value: 'minimal', label: 'Minimal' },
-      { value: 'low', label: 'Low' },
+      { value: 'low', label: 'Low', selected: true },
       { value: 'medium', label: 'Medium' },
       { value: 'high', label: 'High' }
     ];
-
-    options.forEach(opt => {
-      const option = this.reasoningSelect.createEl('option', {
-        value: opt.value,
-        text: opt.label
-      });
-      if (opt.value === 'low') {
-        option.selected = true;
-      }
+    reasoningOptions.forEach(opt => {
+      const item = this.reasoningMenu.createDiv({ cls: 'dropdown-item' });
+      if (opt.selected) item.classList.add('selected');
+      item.textContent = opt.label;
+      item.dataset.value = opt.value;
     });
 
-    reasoningBtn.onmouseenter = () => {
-      reasoningBtn.style.background = 'var(--background-modifier-hover)';
-      reasoningBtn.style.color = 'var(--text-normal)';
-    };
-    reasoningBtn.onmouseleave = () => {
-      reasoningBtn.style.background = 'transparent';
-      reasoningBtn.style.color = 'var(--text-muted)';
-    };
+    // Toolbar divider
+    toolbar.createDiv({ cls: 'toolbar-divider' });
 
+    // Verbosity dropdown
+    const verbosityDropdown = toolbar.createDiv({ cls: 'custom-dropdown' });
+    const verbosityBtn = verbosityDropdown.createEl('button', { cls: 'toolbar-btn' });
+    verbosityBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+      <line x1="16" y1="8" x2="2" y2="22"></line>
+      <line x1="17.5" y1="15" x2="9" y2="15"></line>
+    </svg>`;
+    this.verbosityLabel = verbosityBtn.createEl('span');
+    this.verbosityLabel.textContent = 'Medium';
+
+    this.verbosityMenu = verbosityDropdown.createDiv({ cls: 'dropdown-menu' });
+    const verbosityOptions = [
+      { value: 'low', label: 'Low' },
+      { value: 'medium', label: 'Medium', selected: true },
+      { value: 'high', label: 'High' }
+    ];
+    verbosityOptions.forEach(opt => {
+      const item = this.verbosityMenu.createDiv({ cls: 'dropdown-item' });
+      if (opt.selected) item.classList.add('selected');
+      item.textContent = opt.label;
+      item.dataset.value = opt.value;
+    });
+
+    // Character count
+    this.charCount = toolbar.createEl('span', { cls: 'char-count' });
+    this.charCount.textContent = '0';
+
+    // EXACT dropdown handlers from template
+    reasoningBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.reasoningMenu.classList.toggle('show');
+      this.verbosityMenu.classList.remove('show');
+    });
+
+    verbosityBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.verbosityMenu.classList.toggle('show');
+      this.reasoningMenu.classList.remove('show');
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+      this.reasoningMenu.classList.remove('show');
+      this.verbosityMenu.classList.remove('show');
+    });
+
+    // Handle reasoning dropdown item selection
+    this.reasoningMenu.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.reasoningMenu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        this.plugin.settings.reasoningEffort = item.dataset.value;
+        this.reasoningLabel.textContent = item.textContent;
+        this.reasoningMenu.classList.remove('show');
+      });
+    });
+
+    // Handle verbosity dropdown item selection
+    this.verbosityMenu.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.verbosityMenu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        this.plugin.settings.textVerbosity = item.dataset.value;
+        this.verbosityLabel.textContent = item.textContent;
+        this.verbosityMenu.classList.remove('show');
+      });
+    });
+
+    // Update character count
+    this.inputEl.addEventListener('input', () => {
+      this.charCount.textContent = this.inputEl.value.length;
+    });
+
+    // Send handlers
     this.sendBtn.onclick = () => this.handleSend();
     this.inputEl.onkeypress = (e) => {
       if (e.key === 'Enter') {
@@ -2110,16 +2675,32 @@ class ChatView extends ItemView {
         },
         
         onToolCall: (name, args) => {
-          const toolEl = this.chatEl.createDiv({ cls: 'chat-message tool-call' });
-          toolEl.textContent = `🔧 ${name}(${JSON.stringify(args).slice(0, 100)}...)`;
-          this.scrollToBottom();
+          if (this.debugMode) {
+            // Debug ON: Show full technical details
+            const toolEl = this.chatEl.createDiv({ cls: 'chat-message tool-call' });
+            toolEl.textContent = `🔧 ${name}(${JSON.stringify(args).slice(0, 100)}...)`;
+            this.scrollToBottom();
+          } else {
+            // Debug OFF: Show brief user-friendly summary
+            const summary = this.getToolCallSummary(name, args);
+            if (summary) {  // Only show if not empty
+              const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+              const systemMsg = messageItem.createDiv({ cls: 'system-message' });
+              systemMsg.textContent = summary;
+              this.scrollToBottom();
+            }
+          }
         },
-        
+
         onToolResult: (name, result) => {
-          const resultEl = this.chatEl.createDiv({ cls: 'chat-message tool-result' });
-          const preview = JSON.stringify(result).slice(0, 150);
-          resultEl.textContent = `✓ ${name} → ${preview}...`;
-          this.scrollToBottom();
+          if (this.debugMode) {
+            // Debug ON: Show full result
+            const resultEl = this.chatEl.createDiv({ cls: 'chat-message tool-result' });
+            const preview = JSON.stringify(result).slice(0, 150);
+            resultEl.textContent = `✓ ${name} → ${preview}...`;
+            this.scrollToBottom();
+          }
+          // Debug OFF: Don't show tool results to keep UI clean
         },
         
         onApprovalNeeded: async (details) => {
@@ -2185,12 +2766,121 @@ class ChatView extends ItemView {
   }
   
   addMessage(role, text) {
-    const msgEl = this.chatEl.createDiv({ cls: `chat-message ${role}` });
-    msgEl.textContent = text;
+    // Create message wrapper with template classes
+    const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+
+    // Create role-specific content element
+    let contentEl;
+
+    if (role === 'user') {
+      // User messages: right-aligned bubble with accent background
+      contentEl = messageItem.createDiv({ cls: 'user-message' });
+      contentEl.textContent = text;
+    } else if (role === 'assistant') {
+      // Agent responses: no bubble, grammar-rendered or plain text
+      contentEl = messageItem.createDiv({ cls: 'agent-response' });
+
+      // Check if this is grammar syntax
+      if (this.isGrammarSyntax(text)) {
+        try {
+          // Check if text has "✦" intro before grammar
+          const grammarPattern = /\[(?:text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
+          const grammarMatch = text.match(grammarPattern);
+
+          if (grammarMatch && grammarMatch.index > 0) {
+            // Mixed content: "✦ intro" + grammar
+            const introText = text.substring(0, grammarMatch.index).trim();
+            const grammarText = text.substring(grammarMatch.index).trim();
+
+            // Render intro text
+            if (introText) {
+              const introEl = contentEl.createDiv({ cls: 'message-intro' });
+              introEl.textContent = introText;
+              introEl.style.marginBottom = '12px';
+            }
+
+            // Render grammar
+            const grammarEl = renderGrammar(grammarText, (action, props) => {
+              console.log('Grammar action:', action, props);
+              new Notice(`Action: ${action}`);
+            }, this.app);
+            contentEl.appendChild(grammarEl);
+          } else {
+            // Pure grammar: render as-is
+            const grammarEl = renderGrammar(text, (action, props) => {
+              console.log('Grammar action:', action, props);
+              new Notice(`Action: ${action}`);
+            }, this.app);
+            contentEl.appendChild(grammarEl);
+          }
+        } catch (error) {
+          console.error('[ChatView] Grammar rendering error:', error);
+          // Fallback to plain text if grammar rendering fails
+          contentEl.textContent = text.startsWith('✦') ? text : '✦ ' + text;
+        }
+      } else {
+        // Plain text: auto-prepend "✦" marker if not already there
+        contentEl.textContent = text.startsWith('✦') ? text : '✦ ' + text;
+      }
+    } else if (role === 'system') {
+      // System messages: centered, dimmed text
+      contentEl = messageItem.createDiv({ cls: 'system-message' });
+      contentEl.textContent = text;
+    } else if (role === 'error') {
+      // Error messages: use system style with error indicator
+      contentEl = messageItem.createDiv({ cls: 'system-message' });
+      contentEl.textContent = `❌ ${text}`;
+      contentEl.style.color = 'var(--text-error)';
+    } else {
+      // Fallback for any other role
+      contentEl = messageItem.createDiv({ cls: 'system-message' });
+      contentEl.textContent = text;
+    }
+
     this.scrollToBottom();
-    return msgEl;
+    return messageItem;
   }
-  
+
+  /**
+   * Check if text contains grammar syntax
+   */
+  isGrammarSyntax(text) {
+    if (typeof text !== 'string') return false;
+
+    // Check for grammar patterns anywhere in the text (semantic + raw components)
+    const grammarPattern = /\[(?:file-result|search-result|file-list-item|tag-group|stat-card|stack|card|badge|text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
+    return grammarPattern.test(text);
+  }
+
+  /**
+   * Get user-friendly summary for tool calls
+   */
+  getToolCallSummary(name, args) {
+    const summaries = {
+      'list_files': () => {
+        const folder = args.folder || 'vault';
+        const mode = args.mode || 'list';
+        if (mode === 'count') {
+          return `Counting files in ${folder}...`;
+        }
+        return `Searching files in ${folder}...`;
+      },
+      'read_file': () => `Reading ${args.path || 'file'}...`,
+      'search_lexical': () => `Searching for "${args.query || 'content'}"...`,
+      'retrieve_relevant_chunks': () => `Finding relevant content about "${args.query || 'topic'}"...`,
+      'output_to_user': () => null, // Don't show this in non-debug mode
+    };
+
+    const summaryFn = summaries[name];
+    if (summaryFn) {
+      const summary = summaryFn();
+      return summary || ''; // Return empty string if null
+    }
+
+    // Default summary for unknown tools
+    return `Running ${name}...`;
+  }
+
   addUsageStats(usage, iterations, elapsedMs = 0) {
     // Token breakdown (now showing totals across all API calls)
     const cachedTokens = usage.total_cached_tokens || 0;
@@ -2230,7 +2920,9 @@ class ChatView extends ItemView {
       `• Total Cost: $${costTotal.toFixed(6)}`
     ];
 
-    const statsEl = this.chatEl.createDiv({ cls: 'chat-message stats' });
+    // Create stats message using template classes (system message style)
+    const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+    const statsEl = messageItem.createDiv({ cls: 'system-message' });
     statsEl.textContent = statsLines.join('\n');
     this.scrollToBottom();
   }
@@ -2374,6 +3066,97 @@ class AIAgentSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }
         }));
+
+    // Grammar UI Demo Section
+    containerEl.createEl('h3', { text: 'Grammar UI Demo' });
+
+    const demoDesc = containerEl.createDiv();
+    demoDesc.createEl('p', {
+      text: 'Test grammar syntax rendering. Enter grammar syntax below to see live preview.'
+    });
+
+    // Grammar input textarea
+    const grammarInput = containerEl.createEl('textarea', {
+      placeholder: 'Enter grammar syntax here...\n\nExample:\n[text:size-base,color-mid] ✦ Found 3 files\n[grid:cols-1,gap-md,border-true,background-true,padding-lg]\n  [grid:cols-auto,gap-sm]\n    [icon:name-file,size-12,color-dim]\n    [text:size-sm,color-mid] /Projects/Website.md\n  [/grid]\n[/grid]'
+    });
+    grammarInput.style.width = '100%';
+    grammarInput.style.minHeight = '200px';
+    grammarInput.style.marginBottom = '16px';
+    grammarInput.style.fontFamily = 'monospace';
+    grammarInput.style.fontSize = '13px';
+    grammarInput.style.padding = '12px';
+    grammarInput.style.background = 'var(--background-primary)';
+    grammarInput.style.border = '1px solid var(--background-modifier-border)';
+    grammarInput.style.borderRadius = '4px';
+    grammarInput.style.color = 'var(--text-normal)';
+    grammarInput.style.resize = 'vertical';
+
+    // Set default example
+    grammarInput.value = `[text:size-base,color-mid] ✦ Found 3 files in /Projects
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Website.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Mobile App.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Brand Guidelines.md
+  [/grid]
+  [divider:space-md]
+  [text:size-xs,color-muted] View all files
+[/grid]`;
+
+    // Preview label
+    containerEl.createEl('p', {
+      text: 'Preview:',
+      attr: { style: 'margin-bottom: 8px; font-weight: 500;' }
+    });
+
+    // Preview container
+    const previewContainer = containerEl.createDiv();
+    previewContainer.style.padding = '20px';
+    previewContainer.style.background = 'var(--background-primary)';
+    previewContainer.style.border = '1px solid var(--background-modifier-border)';
+    previewContainer.style.borderRadius = '4px';
+    previewContainer.style.minHeight = '100px';
+    previewContainer.style.marginBottom = '24px';
+
+    // Render function
+    const updatePreview = () => {
+      previewContainer.empty();
+      const grammar = grammarInput.value.trim();
+
+      if (!grammar) {
+        previewContainer.createEl('p', {
+          text: 'Enter grammar syntax above to see preview...',
+          attr: { style: 'color: var(--text-muted);' }
+        });
+        return;
+      }
+
+      try {
+        const rendered = renderGrammar(grammar, (action, props) => {
+          console.log('Grammar action:', action, props);
+          new Notice(`Action: ${action}`);
+        }, this.app);
+        previewContainer.appendChild(rendered);
+      } catch (error) {
+        previewContainer.createEl('p', {
+          text: `Error: ${error.message}`,
+          attr: { style: 'color: var(--text-error);' }
+        });
+      }
+    };
+
+    // Initial render
+    updatePreview();
+
+    // Update on input
+    grammarInput.addEventListener('input', updatePreview);
 
     containerEl.createEl('h3', { text: 'About' });
     
