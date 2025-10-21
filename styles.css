@@ -1,4 +1,4 @@
-/* EXACT CSS FROM CHAT UI TEMPLATE - DO NOT MODIFY */
+/* Obsidian Plugin UI - Integrates with Obsidian Theme */
 
 * {
     margin: 0;
@@ -7,18 +7,19 @@
 }
 
 :root {
-    --bg-base: var(--background-primary, #000);
-    --bg-surface: var(--background-secondary, #0a0a0a);
-    --bg-hover: var(--background-modifier-hover, #0f0f0f);
-    --border: var(--background-modifier-border, #1a1a1a);
-    --text-bright: var(--text-normal, #ccc);
-    --text-mid: var(--text-muted, #999);
-    --text-dim: var(--text-faint, #666);
-    --text-muted: var(--text-faint, #555);
-    --icon-primary: var(--icon-color, #666);
-    --icon-dim: var(--icon-color-focused, #555);
-    --icon-bright: var(--icon-color-hover, #888);
-    --accent: var(--interactive-accent, #1a1a2a);
+    /* Use Obsidian's theme colors - NO fallbacks to ensure theme integration */
+    --bg-base: var(--background-primary);
+    --bg-surface: var(--background-secondary);
+    --bg-hover: var(--background-modifier-hover);
+    --border: var(--background-modifier-border);
+    --text-bright: var(--text-normal);
+    --text-mid: var(--text-muted);
+    --text-dim: var(--text-faint);
+    --text-muted: var(--text-faint);
+    --icon-primary: var(--icon-color);
+    --icon-dim: var(--icon-color-focused);
+    --icon-bright: var(--icon-color-hover);
+    --accent: var(--interactive-accent);
 
     --spacing-xs: 4px;
     --spacing-sm: 6px;
@@ -116,7 +117,7 @@ body {
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     background: var(--bg-surface);
-    color: #5a7a5a;
+    color: var(--text-success, var(--text-mid));
 }
 
 /* Chat messages area */
@@ -312,41 +313,41 @@ body {
 }
 
 .status-success {
-    background: #3a4a3a;
+    background: var(--background-modifier-success, var(--bg-surface));
 }
 
 .status-success .icon {
-    color: #5a7a5a;
+    color: var(--text-success, var(--text-mid));
 }
 
 .status-error {
-    background: #4a3a3a;
+    background: var(--background-modifier-error, var(--bg-surface));
 }
 
 .status-error .icon {
-    color: #7a5a5a;
+    color: var(--text-error, var(--text-mid));
 }
 
 .status-pending {
-    background: #4a4a3a;
+    background: var(--background-modifier-warning, var(--bg-surface));
 }
 
 .status-pending .icon {
-    color: #7a7a5a;
+    color: var(--text-warning, var(--text-mid));
 }
 
 .status-info {
-    background: #3a3a4a;
+    background: var(--background-modifier-info, var(--bg-surface));
 }
 
 .status-info .icon {
-    color: #5a5a7a;
+    color: var(--text-accent, var(--text-mid));
 }
 
 .spinner {
     width: 14px;
     height: 14px;
-    border: 1px solid #222;
+    border: 1px solid var(--bg-surface);
     border-top-color: var(--icon-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -500,5 +501,5 @@ body {
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: #2a2a2a;
+    background: var(--bg-hover);
 }
