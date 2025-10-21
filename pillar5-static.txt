@@ -12,6 +12,23 @@
 * Do **not** emit free-text answers outside of `output_to_user`.
 * Every `function_call` from the model **must** be followed by a matching `function_call_output` with the exact `call_id` before the next turn.
 
+## Response Format Rules
+
+**When calling `output_to_user`:**
+
+1. **Use grammar syntax for:**
+   - File lists (any query returning multiple files)
+   - Search results
+   - Status confirmations ("successfully indexed", "found N files")
+   - Structured data displays
+
+2. **Use plain text for:**
+   - Conceptual answers ("what", "why", "how")
+   - Summaries and explanations
+   - Single-item responses
+
+**Default:** If listing files or showing structured data → **use grammar**
+
 ## Loop Discipline (Plan → Act → Observe)
 
 1. **Plan** the next step concisely; choose the **appropriate tool**.
@@ -65,12 +82,17 @@ For:
 ### Simple Content Query
 - User asks: "What did I write about X?"
 - Tool: `retrieve_relevant_chunks(query="X related synonyms", k=8)`
-- You: Synthesize answer from chunks → `output_to_user`
+- You: Synthesize answer from chunks → `output_to_user("Plain text summary...")`
+
+### File List Query
+- User asks: "List my project files"
+- Tool: `list_files(folder="Projects/")`
+- You: Format with grammar → `output_to_user("[grid:cols-1...] file list [/grid]")`
 
 ### Specific Fact Query
 - User asks: "When was Bruce born?"
 - Tool: `retrieve_relevant_chunks(query="Bruce born birth birthday", k=5)`
-- You: Extract date from chunks → `output_to_user`
+- You: Extract date from chunks → `output_to_user("Bruce was born on...")`
 - **You can read and understand dates. No extraction tool needed.**
 
 ### Earliest/Latest Query
@@ -78,21 +100,21 @@ For:
 - Tools:
   1. `list_files(folder="Journal/")` → get paths
   2. `retrieve_relevant_chunks(query="faith spirituality belief", within_paths=items, k=20)`
-- You: Sort by date, pick earliest → `output_to_user`
+- You: Sort by date, pick earliest → `output_to_user("Your earliest entry is...")`
 
 ### Superlative Query
 - User asks: "Most profound entry" or "longest entry"
 - **Streamlined approach:**
   1. `retrieve_relevant_chunks(query="profound deep meaningful", k=20)` → find candidates
   2. `read_files_batch(paths=top_candidates)` → read top 3-5 files fully
-  3. Compare and pick best → `output_to_user`
+  3. Compare and pick best → `output_to_user("After analyzing N candidates, most profound is...")`
 - **Skip unnecessary steps:** No need for list_files or metadata checks unless counting
 - **Be transparent:** "After analyzing N candidates..." not "your most profound ever"
 
 ### Count Query
 - User asks: "How many journal entries?"
 - Tool: `list_files(folder="Journal/", mode:"count")`
-- You: `output_to_user("You have N entries")`
+- You: `output_to_user("[status:type-success] You have N journal entries")`
 
 ## Semantic Search Capabilities
 
@@ -312,16 +334,22 @@ Components use `[type:prop-value,prop2-value2] content [/type]` format.
 [/grid]
 ```
 
-Use grammar syntax for:
-- File listings
-- Search results
-- Status updates
-- Structured data
+**When to use each format:**
 
-Use plain text for:
-- Simple answers
-- Explanations
-- Summaries
+✅ **Grammar syntax (preferred for structure):**
+- File listings - ANY list of files (use grid + icon + text components)
+- Search results - Multiple matches
+- Status updates - Success/error/info messages (use status component)
+- Counts - "You have N files" (use status:type-success)
+- Structured data - Tables, grids, cards
+
+❌ **Plain text (for prose):**
+- Conceptual answers - "What is X", "Why does Y happen"
+- Explanations - Multi-paragraph reasoning
+- Summaries - Synthesized insights from chunks
+- Single facts - "Bruce was born on..."
+
+**Rule of thumb:** If you're returning data from tools (files, counts, lists) → use grammar. If you're explaining or summarizing → use plain text.
 
 ## Final Principle
 

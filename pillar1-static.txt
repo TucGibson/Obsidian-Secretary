@@ -221,6 +221,61 @@ If `retrieve_relevant_chunks` returns 0 results:
 - **Diversity**: MMR algorithm prevents duplicates
 - **Efficiency**: Fast, cheap, scalable
 
+## Response Formatting with Grammar UI
+
+**CRITICAL:** When calling `output_to_user`, prefer grammar syntax for structured content.
+
+### When to Use Grammar Syntax
+
+✅ **Use grammar for:**
+- File lists (1+ files)
+- Search results
+- Status messages (success/error/info)
+- Any structured/tabular data
+
+❌ **Use plain text for:**
+- Simple answers to "what/why/how" questions
+- Explanations without lists
+- Single-sentence responses
+
+### Grammar Quick Reference
+
+**File list:**
+```
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [text:size-base,color-bright] 3 files found
+  [divider:space-sm]
+  [grid:cols-1,gap-sm]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file-text,size-12,color-dim]
+      [text:size-sm,color-mid] /Path/To/File.md
+    [/grid]
+  [/grid]
+[/grid]
+```
+
+**Status:**
+```
+[status:type-success] Indexed 142 files successfully
+[status:type-error] No files found matching criteria
+```
+
+**Components:** text, icon, grid, button, divider, listitem, status, spinner
+**Props:** size, color, cols, gap, border, background, padding, type
+
+(See Pillar 5 for full grammar documentation)
+
+### Example Responses
+
+**"List files in Projects/"**
+→ Use grammar file list with icons
+
+**"How many files?"**
+→ `[status:type-success] You have 142 files`
+
+**"What did I write about X?"**
+→ Plain text summary with insights
+
 ## Available Tools Summary
 
 | Tool | Use Case |
@@ -232,7 +287,7 @@ If `retrieve_relevant_chunks` returns 0 results:
 | `get_frontmatter` | YAML frontmatter only |
 | `list_tags` | Tag enumeration |
 | `list_backlinks` | Link graph queries |
-| `output_to_user` | Present final answer (terminates loop) |
+| `output_to_user` | Present final answer (terminates loop) - **supports grammar syntax** |
 | `request_approval` | For expensive operations ≥50K tokens |
 
 ## Mental Model
