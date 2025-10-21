@@ -24,9 +24,110 @@ const icons = {
     'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
 };
 
+// SEMANTIC LAYER: Expand high-level patterns into low-level grammar
+function expandSemanticPattern(pattern) {
+    // Match semantic pattern: [semantic-type:key-val,key-val]
+    const match = pattern.match(/^\[(file-result|search-result|tag-group|stat-card|file-list-item):(.*?)\]/);
+    if (!match) return null;
+
+    const [, type, propsStr] = match;
+
+    // Parse props from "key-val,key-val" format
+    const props = {};
+    if (propsStr) {
+        propsStr.split(',').forEach(prop => {
+            const parts = prop.trim().split('-');
+            const key = parts[0];
+            const val = parts.slice(1).join('-');
+            props[key] = val;
+        });
+    }
+
+    switch (type) {
+        case 'file-result':
+            return `[card]
+  [stack:gap-sm]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file-text,size-14,color-dim]
+      [text:size-sm,color-bright] ${props.path || 'Untitled'}
+    [/grid]
+    ${props.tags ? `[grid:cols-auto,gap-sm]
+      [icon:name-tag,size-12,color-dim]
+      [text:size-sm,color-dim] ${props.tags}
+    [/grid]` : ''}
+    ${props.modified ? `[grid:cols-auto,gap-sm]
+      [icon:name-clock,size-12,color-dim]
+      [text:size-sm,color-dim] ${props.modified}
+    [/grid]` : ''}
+  [/stack]
+[/card]`;
+
+        case 'search-result':
+            return `[card:hover-true]
+  [stack:gap-sm]
+    [grid:cols-auto,gap-sm]
+      [icon:name-file-text,size-12,color-dim]
+      [text:size-sm,color-mid] ${props.path || 'Untitled'}
+    [/grid]
+    ${props.preview ? `[text:size-sm,color-dim] ${props.preview}` : ''}
+    ${props.matches ? `[badge:variant-accent] ${props.matches} matches` : ''}
+  [/stack]
+[/card]`;
+
+        case 'tag-group':
+            const tags = props.tags ? props.tags.split('|') : [];
+            const tagCards = tags.map(tag => {
+                const [name, count] = tag.split(':');
+                return `[card]
+    [grid:cols-auto,gap-sm]
+      [icon:name-hash,size-12,color-dim]
+      [text:size-sm,color-mid] ${name}
+      ${count ? `[text:size-sm,color-muted] (${count})` : ''}
+    [/grid]
+  [/card]`;
+            }).join('\n  ');
+            return `[grid:cols-auto-fit,min-80px,gap-sm]
+  ${tagCards}
+[/grid]`;
+
+        case 'stat-card':
+            return `[card]
+  [stack:gap-xs]
+    [text:size-xl,color-bright] ${props.value || '0'}
+    [text:size-sm,color-dim] ${props.label || 'Stat'}
+  [/stack]
+[/card]`;
+
+        case 'file-list-item':
+            return `[grid:cols-auto,gap-sm,align-center]
+  [icon:name-${props.icon || 'file'},size-12,color-dim]
+  [text:size-sm,color-mid] ${props.path || 'Untitled'}
+  ${props.badge ? `[badge] ${props.badge}` : ''}
+[/grid]`;
+
+        default:
+            return null;
+    }
+}
+
 // Grammar Parser - EXACT from grammar-ui-demo.html
 function parseGrammar(grammar) {
-    const normalized = grammar
+    // First pass: expand semantic patterns
+    let expanded = grammar;
+    const semanticPattern = /\[(file-result|search-result|tag-group|stat-card|file-list-item):[^\]]+\]/g;
+    const matches = grammar.match(semanticPattern);
+
+    if (matches) {
+        matches.forEach(match => {
+            const expandedPattern = expandSemanticPattern(match);
+            if (expandedPattern) {
+                expanded = expanded.replace(match, expandedPattern);
+            }
+        });
+    }
+
+    // Continue with normal parsing
+    const normalized = expanded
         .replace(/\]\s*\[/g, ']\n[')
         .trim();
 
@@ -66,7 +167,7 @@ function parseGrammar(grammar) {
 
             const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
 
-            const containerTypes = ['grid', 'container'];
+            const containerTypes = ['grid', 'container', 'stack', 'card', 'listitem'];
             if (!contentAfterTag && containerTypes.includes(type)) {
                 stack.push(element);
             } else if (stack.length > 0) {
@@ -248,6 +349,84 @@ function createSpinner() {
     return el;
 }
 
+function createStack(props, children) {
+    const el = document.createElement('div');
+    el.className = 'stack';
+
+    const direction = props.direction || 'vertical';
+    const gap = props.gap || 'md';
+    const align = props.align || 'stretch';
+
+    // Stack uses flexbox
+    el.style.display = 'flex';
+    el.style.flexDirection = direction === 'vertical' ? 'column' : 'row';
+    el.style.gap = `var(--spacing-${gap})`;
+    el.style.alignItems = align;
+
+    children.forEach(child => el.appendChild(child));
+
+    return el;
+}
+
+function createCard(props, children) {
+    const el = document.createElement('div');
+    el.className = 'card';
+
+    const hover = props.hover === 'true';
+
+    // Card styling
+    el.style.border = '1px solid var(--border)';
+    el.style.borderRadius = 'var(--radius-md)';
+    el.style.background = 'var(--bg-surface)';
+    el.style.padding = 'var(--spacing-lg)';
+    el.style.transition = 'all var(--transition)';
+
+    if (hover) {
+        el.style.cursor = 'pointer';
+        el.addEventListener('mouseenter', () => {
+            el.style.background = 'var(--bg-hover)';
+        });
+        el.addEventListener('mouseleave', () => {
+            el.style.background = 'var(--bg-surface)';
+        });
+    }
+
+    children.forEach(child => el.appendChild(child));
+
+    return el;
+}
+
+function createBadge(props, content) {
+    const el = document.createElement('span');
+    el.className = 'badge';
+
+    const variant = props.variant || 'default';
+
+    // Badge styling
+    el.style.display = 'inline-flex';
+    el.style.alignItems = 'center';
+    el.style.padding = '2px var(--spacing-sm)';
+    el.style.fontSize = 'var(--font-sm)';
+    el.style.borderRadius = 'var(--radius-sm)';
+    el.style.border = '1px solid rgba(255,255,255,0.05)';
+
+    // Variant colors
+    const variants = {
+        default: { bg: 'var(--bg-surface)', color: 'var(--text-dim)' },
+        accent: { bg: 'rgba(124, 58, 237, 0.2)', color: '#7c3aed' },
+        success: { bg: '#3a4a3a', color: '#5a7a5a' },
+        error: { bg: '#4a3a3a', color: '#7a5a5a' }
+    };
+
+    const style = variants[variant] || variants.default;
+    el.style.background = style.bg;
+    el.style.color = style.color;
+
+    el.textContent = content;
+
+    return el;
+}
+
 // Grammar Renderer - EXACT from grammar-ui-demo.html
 function renderGrammar(grammar, onAction) {
     const elements = parseGrammar(grammar);
@@ -308,6 +487,31 @@ function renderElement(element, onAction) {
 
         case 'spinner':
             return createSpinner();
+
+        case 'stack':
+            const stackChildren = [];
+            if (content) {
+                stackChildren.push(createText({}, content));
+            }
+            children.forEach(child => {
+                const rendered = renderElement(child, onAction);
+                if (rendered) stackChildren.push(rendered);
+            });
+            return createStack(props, stackChildren);
+
+        case 'card':
+            const cardChildren = [];
+            if (content) {
+                cardChildren.push(createText({}, content));
+            }
+            children.forEach(child => {
+                const rendered = renderElement(child, onAction);
+                if (rendered) cardChildren.push(rendered);
+            });
+            return createCard(props, cardChildren);
+
+        case 'badge':
+            return createBadge(props, content);
 
         default:
             return null;
@@ -2173,7 +2377,7 @@ class ChatView extends ItemView {
     headerLeft.createEl('strong', { text: 'AI Agent - Semantic RAG' });
     headerLeft.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.26'
+      text: 'v3.0.0'
     });
 
     // Right side - buttons
@@ -2215,7 +2419,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.26\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.0.0 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -2611,8 +2815,8 @@ class ChatView extends ItemView {
   isGrammarSyntax(text) {
     if (typeof text !== 'string') return false;
 
-    // Check for grammar patterns anywhere in the text
-    const grammarPattern = /\[(?:text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
+    // Check for grammar patterns anywhere in the text (semantic + raw components)
+    const grammarPattern = /\[(?:file-result|search-result|file-list-item|tag-group|stat-card|stack|card|badge|text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
     return grammarPattern.test(text);
   }
 
