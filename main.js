@@ -1,7 +1,7 @@
 // ============================================================================
-// VERSION: 2.0.16 - Clean debug logs, add cache efficiency, reasoning effort selector
+// VERSION: 2.0.17 - Redesigned input area for better UX
 // LAST UPDATED: 2025-10-21
-// CHANGES: Reduced console spam, added cache hit % to stats, per-query reasoning effort
+// CHANGES: Modern chat UI with auto-expand textarea, inline send button, compact controls
 // ============================================================================
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1859,7 +1859,7 @@ class ChatView extends ItemView {
     // Version display
     const versionEl = header.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.16'
+      text: 'v2.0.17'
     });
     versionEl.style.fontSize = '11px';
     versionEl.style.opacity = '0.7';
@@ -1891,7 +1891,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.16\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.17\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -1902,36 +1902,39 @@ class ChatView extends ItemView {
     this.addMessage('system', welcomeMsg);
 
     const inputContainer = container.createDiv({ cls: 'chat-input-container' });
+    inputContainer.style.padding = '12px';
+    inputContainer.style.borderTop = '1px solid var(--background-modifier-border)';
+    inputContainer.style.background = 'var(--background-primary)';
 
-    // Reasoning effort selector row
+    // Compact reasoning effort selector
     const controlsRow = inputContainer.createDiv({ cls: 'chat-controls-row' });
     controlsRow.style.display = 'flex';
     controlsRow.style.alignItems = 'center';
-    controlsRow.style.gap = '8px';
-    controlsRow.style.marginBottom = '8px';
-    controlsRow.style.fontSize = '13px';
+    controlsRow.style.gap = '6px';
+    controlsRow.style.marginBottom = '10px';
+    controlsRow.style.fontSize = '12px';
+    controlsRow.style.color = 'var(--text-muted)';
 
     const reasoningLabel = controlsRow.createEl('span', {
-      text: 'Reasoning effort:',
+      text: 'Reasoning:',
       cls: 'reasoning-label'
     });
-    reasoningLabel.style.color = 'var(--text-muted)';
-    reasoningLabel.style.fontSize = '12px';
 
     this.reasoningSelect = controlsRow.createEl('select', {
       cls: 'reasoning-select'
     });
-    this.reasoningSelect.style.padding = '4px 8px';
-    this.reasoningSelect.style.borderRadius = '4px';
+    this.reasoningSelect.style.padding = '2px 6px';
+    this.reasoningSelect.style.borderRadius = '3px';
     this.reasoningSelect.style.border = '1px solid var(--background-modifier-border)';
     this.reasoningSelect.style.background = 'var(--background-primary)';
     this.reasoningSelect.style.color = 'var(--text-normal)';
     this.reasoningSelect.style.cursor = 'pointer';
+    this.reasoningSelect.style.fontSize = '11px';
 
     // Add options (default to 'low' as requested)
     const options = [
       { value: 'minimal', label: 'Minimal' },
-      { value: 'low', label: 'Low (Default)' },
+      { value: 'low', label: 'Low' },
       { value: 'medium', label: 'Medium' },
       { value: 'high', label: 'High' }
     ];
@@ -1946,24 +1949,70 @@ class ChatView extends ItemView {
       }
     });
 
-    const reasoningHint = controlsRow.createEl('span', {
-      text: 'How much the model thinks before responding',
-      cls: 'reasoning-hint'
-    });
-    reasoningHint.style.color = 'var(--text-faint)';
-    reasoningHint.style.fontSize = '11px';
-    reasoningHint.style.fontStyle = 'italic';
-    reasoningHint.style.marginLeft = 'auto';
+    // Input wrapper with send button
+    const inputWrapper = inputContainer.createDiv({ cls: 'chat-input-wrapper' });
+    inputWrapper.style.display = 'flex';
+    inputWrapper.style.alignItems = 'flex-end';
+    inputWrapper.style.gap = '8px';
+    inputWrapper.style.background = 'var(--background-secondary)';
+    inputWrapper.style.border = '1px solid var(--background-modifier-border)';
+    inputWrapper.style.borderRadius = '8px';
+    inputWrapper.style.padding = '8px';
+    inputWrapper.style.transition = 'border-color 0.2s';
 
-    this.inputEl = inputContainer.createEl('textarea', {
+    this.inputEl = inputWrapper.createEl('textarea', {
       cls: 'chat-input',
       placeholder: 'Ask me anything about your vault...'
     });
+    this.inputEl.style.flex = '1';
+    this.inputEl.style.border = 'none';
+    this.inputEl.style.background = 'transparent';
+    this.inputEl.style.resize = 'none';
+    this.inputEl.style.outline = 'none';
+    this.inputEl.style.fontSize = '14px';
+    this.inputEl.style.fontFamily = 'var(--font-text)';
+    this.inputEl.style.color = 'var(--text-normal)';
+    this.inputEl.style.minHeight = '20px';
+    this.inputEl.style.maxHeight = '200px';
+    this.inputEl.style.overflowY = 'auto';
+    this.inputEl.rows = 1;
 
-    this.sendBtn = inputContainer.createEl('button', {
+    this.sendBtn = inputWrapper.createEl('button', {
       cls: 'chat-send-btn',
-      text: 'Send'
+      text: '↑'
     });
+    this.sendBtn.style.padding = '8px 12px';
+    this.sendBtn.style.borderRadius = '6px';
+    this.sendBtn.style.border = 'none';
+    this.sendBtn.style.background = 'var(--interactive-accent)';
+    this.sendBtn.style.color = 'var(--text-on-accent)';
+    this.sendBtn.style.cursor = 'pointer';
+    this.sendBtn.style.fontSize = '16px';
+    this.sendBtn.style.fontWeight = 'bold';
+    this.sendBtn.style.transition = 'opacity 0.2s';
+    this.sendBtn.style.flexShrink = '0';
+
+    // Hover effect for send button
+    this.sendBtn.onmouseenter = () => {
+      this.sendBtn.style.opacity = '0.9';
+    };
+    this.sendBtn.onmouseleave = () => {
+      this.sendBtn.style.opacity = '1';
+    };
+
+    // Auto-expand textarea
+    this.inputEl.oninput = () => {
+      this.inputEl.style.height = 'auto';
+      this.inputEl.style.height = Math.min(this.inputEl.scrollHeight, 200) + 'px';
+    };
+
+    // Focus effect for input wrapper
+    this.inputEl.onfocus = () => {
+      inputWrapper.style.borderColor = 'var(--interactive-accent)';
+    };
+    this.inputEl.onblur = () => {
+      inputWrapper.style.borderColor = 'var(--background-modifier-border)';
+    };
 
     this.sendBtn.onclick = () => this.handleSend();
     this.inputEl.onkeydown = (e) => {
@@ -2036,6 +2085,7 @@ class ChatView extends ItemView {
     if (!message) return;
 
     this.inputEl.value = '';
+    this.inputEl.style.height = 'auto'; // Reset height after sending
     this.inputEl.disabled = true;
     this.sendBtn.disabled = true;
 
