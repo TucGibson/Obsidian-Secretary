@@ -24,14 +24,22 @@ const icons = {
     'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
 };
 
-// Format file path as wikilink: "Projects/File.md" -> "[[File]]"
+// Format file path as wikilink: "Projects/File.md" -> "File" (no brackets, clean display)
+// Supports alias syntax: "File|Display Name" -> "Display Name"
 function formatFilePath(path) {
     if (!path) return '';
+
+    // Check if there's an alias (pipe syntax)
+    if (path.includes('|')) {
+        const parts = path.split('|');
+        return parts[1].trim(); // Return the alias part
+    }
+
     // Extract filename from path
     const filename = path.split('/').pop();
     // Remove .md extension if present
     const displayName = filename.replace(/\.md$/, '');
-    return `[[${displayName}]]`;
+    return displayName; // Return without brackets
 }
 
 // SEMANTIC LAYER: Expand high-level patterns into low-level grammar
@@ -204,7 +212,7 @@ function parseGrammar(grammar) {
 }
 
 // Component creators - EXACT from grammar-ui-demo.html
-function createText(props, content) {
+function createText(props, content, app) {
     const el = document.createElement('div');
     el.className = 'text';
 
@@ -226,15 +234,28 @@ function createText(props, content) {
         el.style.color = 'var(--interactive-accent)';
         el.style.textDecoration = 'none';
 
-        // Handle file path click - convert to wikilink format and trigger Obsidian open
-        el.addEventListener('click', () => {
+        // Handle file path click - open file in Obsidian
+        el.addEventListener('click', async (e) => {
+            e.preventDefault();
             const filePath = el.getAttribute('data-filepath');
-            console.log('Clicked file:', filePath);
-            // TODO: Integrate with Obsidian's file opening API
-            // For now, just log the click
+
+            // Extract file path from alias syntax if present (File|Alias -> File)
+            const cleanPath = filePath.includes('|') ? filePath.split('|')[0].trim() : filePath;
+
+            if (app && app.workspace) {
+                try {
+                    // Use Obsidian's API to open the file
+                    await app.workspace.openLinkText(cleanPath, '', false);
+                } catch (error) {
+                    console.error('Failed to open file:', error);
+                    new Notice(`Could not open file: ${cleanPath}`);
+                }
+            } else {
+                console.warn('App context not available for file opening');
+            }
         });
 
-        // Display as wikilink instead of full path
+        // Display as wikilink (no brackets, supports aliases)
         el.textContent = formatFilePath(content);
     } else {
         el.textContent = content;
@@ -356,7 +377,7 @@ function createListItem(props, children) {
     return el;
 }
 
-function createStatus(props, content) {
+function createStatus(props, content, app) {
     const type = props.type || 'info';
     const el = document.createElement('div');
     el.className = `status status-${type}`;
@@ -371,7 +392,7 @@ function createStatus(props, content) {
     const iconEl = createIcon({ name: iconNames[type], size: 14 });
     el.appendChild(iconEl);
 
-    const textEl = createText({ size: 'sm', color: 'mid' }, content);
+    const textEl = createText({ size: 'sm', color: 'mid' }, content, app);
     el.appendChild(textEl);
 
     return el;
@@ -439,7 +460,7 @@ function createBadge(props, content) {
 }
 
 // Grammar Renderer - EXACT from grammar-ui-demo.html
-function renderGrammar(grammar, onAction) {
+function renderGrammar(grammar, onAction, app) {
     const elements = parseGrammar(grammar);
     const container = document.createElement('div');
     container.style.display = 'flex';
@@ -447,19 +468,19 @@ function renderGrammar(grammar, onAction) {
     container.style.gap = 'var(--spacing-md)';
 
     elements.forEach(element => {
-        const rendered = renderElement(element, onAction);
+        const rendered = renderElement(element, onAction, app);
         if (rendered) container.appendChild(rendered);
     });
 
     return container;
 }
 
-function renderElement(element, onAction) {
+function renderElement(element, onAction, app) {
     const { type, props, content, children } = element;
 
     switch (type) {
         case 'text':
-            return createText(props, content);
+            return createText(props, content, app);
 
         case 'icon':
             return createIcon(props);
@@ -468,10 +489,10 @@ function renderElement(element, onAction) {
         case 'container':
             const childElements = [];
             if (content) {
-                childElements.push(createText({}, content));
+                childElements.push(createText({}, content, app));
             }
             children.forEach(child => {
-                const rendered = renderElement(child, onAction);
+                const rendered = renderElement(child, onAction, app);
                 if (rendered) childElements.push(rendered);
             });
             return createGrid(props, childElements);
@@ -485,16 +506,16 @@ function renderElement(element, onAction) {
         case 'listitem':
             const listChildren = [];
             if (content) {
-                listChildren.push(createText({ size: 'sm', color: 'mid' }, content));
+                listChildren.push(createText({ size: 'sm', color: 'mid' }, content, app));
             }
             children.forEach(child => {
-                const rendered = renderElement(child, onAction);
+                const rendered = renderElement(child, onAction, app);
                 if (rendered) listChildren.push(rendered);
             });
             return createListItem(props, listChildren);
 
         case 'status':
-            return createStatus(props, content);
+            return createStatus(props, content, app);
 
         case 'spinner':
             return createSpinner();
@@ -502,10 +523,10 @@ function renderElement(element, onAction) {
         case 'stack':
             const stackChildren = [];
             if (content) {
-                stackChildren.push(createText({}, content));
+                stackChildren.push(createText({}, content, app));
             }
             children.forEach(child => {
-                const rendered = renderElement(child, onAction);
+                const rendered = renderElement(child, onAction, app);
                 if (rendered) stackChildren.push(rendered);
             });
             return createStack(props, stackChildren);
@@ -513,10 +534,10 @@ function renderElement(element, onAction) {
         case 'card':
             const cardChildren = [];
             if (content) {
-                cardChildren.push(createText({}, content));
+                cardChildren.push(createText({}, content, app));
             }
             children.forEach(child => {
-                const rendered = renderElement(child, onAction);
+                const rendered = renderElement(child, onAction, app);
                 if (rendered) cardChildren.push(rendered);
             });
             return createCard(props, cardChildren);
@@ -2782,14 +2803,14 @@ class ChatView extends ItemView {
             const grammarEl = renderGrammar(grammarText, (action, props) => {
               console.log('Grammar action:', action, props);
               new Notice(`Action: ${action}`);
-            });
+            }, this.app);
             contentEl.appendChild(grammarEl);
           } else {
             // Pure grammar: render as-is
             const grammarEl = renderGrammar(text, (action, props) => {
               console.log('Grammar action:', action, props);
               new Notice(`Action: ${action}`);
-            });
+            }, this.app);
             contentEl.appendChild(grammarEl);
           }
         } catch (error) {
@@ -3121,7 +3142,7 @@ class AIAgentSettingTab extends PluginSettingTab {
         const rendered = renderGrammar(grammar, (action, props) => {
           console.log('Grammar action:', action, props);
           new Notice(`Action: ${action}`);
-        });
+        }, this.app);
         previewContainer.appendChild(rendered);
       } catch (error) {
         previewContainer.createEl('p', {
