@@ -1,330 +1,321 @@
 // ============================================================================
-// VERSION: 2.0.17 - Grammar UI System with CSS Classes
+// VERSION: 2.0.17 - EXACT COPY FROM CHAT UI TEMPLATE
 // LAST UPDATED: 2025-10-21
-// CHANGES: CSS class-based grammar rendering (template-based)
+// DO NOT MODIFY - Copied exactly from template
 // ============================================================================
 
 ///// PART 0 START - GRAMMAR UI SYSTEM ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ============================================================================
-// GRAMMAR UI SYSTEM - CSS Class-Based Implementation
-// Converts grammar strings to rich UI components using CSS classes
-// ============================================================================
-
-// Icon SVG strings - Lucide icons
-const GRAMMAR_ICONS = {
-  'file-text': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
-  'file': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
-  'tag': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
-  'link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>',
-  'clock': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-  'external-link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
-  'move': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>',
-  'hash': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>',
-  'alert-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
-  'check-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
-  'x-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
-  'search': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
-  'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
+// EXACT COPY from grammar-ui-demo.html
+// Lucide icons as SVG strings
+const icons = {
+    'file-text': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+    'file': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+    'tag': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
+    'link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>',
+    'clock': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+    'external-link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+    'move': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>',
+    'hash': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>',
+    'alert-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+    'check-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+    'x-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+    'search': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+    'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
 };
 
-/**
- * Component creators using CSS classes
- */
-function createGrammarText(props, content) {
-  const el = document.createElement('div');
-  el.className = 'text';
-
-  const size = props.size || 'base';
-  const color = props.color || 'mid';
-  const weight = props.weight;
-  const mono = props.mono;
-
-  el.classList.add(`text-${size}`);
-  el.classList.add(`text-${color}`);
-  if (weight === 'medium') el.classList.add('text-medium');
-  if (mono) el.classList.add('text-mono');
-
-  el.textContent = content;
-  return el;
-}
-
-function createGrammarIcon(props) {
-  const name = props.name;
-  const size = props.size || 14;
-  const color = props.color || 'primary';
-
-  if (!name || !GRAMMAR_ICONS[name]) {
-    console.warn(`Icon "${name}" not found`);
-    return document.createElement('span');
-  }
-
-  const el = document.createElement('span');
-  el.className = `icon icon-${color}`;
-  el.innerHTML = GRAMMAR_ICONS[name].replace(/SIZE/g, size);
-
-  return el;
-}
-
-function createGrammarGrid(props, children) {
-  const el = document.createElement('div');
-  el.className = 'grid';
-
-  const cols = props.cols || '1';
-  const gap = props.gap || 'md';
-  const align = props.align || 'center';
-  const justify = props.justify || 'start';
-  const border = props.border === 'true';
-  const background = props.background === 'true';
-  const padding = props.padding;
-  const hover = props.hover === 'true';
-  const min = props.min;
-
-  if (cols === 'auto') {
-    el.classList.add('grid-auto');
-  } else if (cols === 'auto-fit' && min) {
-    el.style.gridTemplateColumns = `repeat(auto-fit, minmax(${min}, 1fr))`;
-  } else {
-    el.classList.add(`grid-${cols}`);
-  }
-
-  el.classList.add(`gap-${gap}`);
-  el.classList.add(`align-${align}`);
-  el.classList.add(`justify-${justify}`);
-
-  if (border) el.classList.add('grid-border');
-  if (background) el.classList.add('grid-bg');
-  if (padding) el.classList.add(`padding-${padding}`);
-  if (hover) el.classList.add('grid-hover');
-
-  children.forEach(child => el.appendChild(child));
-
-  return el;
-}
-
-function createGrammarButton(props, content, onAction) {
-  const el = document.createElement('button');
-  el.className = 'btn';
-
-  const icon = props.icon;
-  const primary = props.primary === 'true';
-  const action = props.action;
-
-  if (primary) el.classList.add('btn-primary');
-
-  if (icon) {
-    const iconEl = createGrammarIcon({ name: icon, size: 12 });
-    el.appendChild(iconEl);
-  }
-
-  const textEl = document.createElement('span');
-  textEl.textContent = content;
-  el.appendChild(textEl);
-
-  if (action && onAction) {
-    el.onclick = () => onAction(action, props);
-  }
-
-  return el;
-}
-
-function createGrammarDivider(props) {
-  const el = document.createElement('div');
-  const direction = props.direction || 'h';
-  const space = props.space || 'lg';
-
-  el.className = direction === 'h' ? 'divider-h' : 'divider-v';
-  el.classList.add(`divider-space-${space}`);
-
-  return el;
-}
-
-function createGrammarListItem(props, children) {
-  const el = document.createElement('div');
-  el.className = 'list-item';
-
-  const icon = props.icon;
-  const hover = props.hover !== 'false';
-
-  if (icon) {
-    el.classList.add('list-item-with-icon');
-    const iconEl = createGrammarIcon({ name: icon, size: 12, color: 'dim' });
-    el.appendChild(iconEl);
-  }
-
-  if (hover) el.classList.add('list-item-hover');
-
-  const contentDiv = document.createElement('div');
-  contentDiv.style.minWidth = '0';
-  children.forEach(child => contentDiv.appendChild(child));
-  el.appendChild(contentDiv);
-
-  return el;
-}
-
-function createGrammarStatus(props, content) {
-  const type = props.type || 'info';
-  const el = document.createElement('div');
-  el.className = `status status-${type}`;
-
-  const iconNames = {
-    success: 'check-circle',
-    error: 'x-circle',
-    pending: 'clock',
-    info: 'alert-circle'
-  };
-
-  const iconEl = createGrammarIcon({ name: iconNames[type], size: 14 });
-  el.appendChild(iconEl);
-
-  const textEl = createGrammarText({ size: 'sm', color: 'mid' }, content);
-  el.appendChild(textEl);
-
-  return el;
-}
-
-function createGrammarSpinner() {
-  const el = document.createElement('div');
-  el.className = 'spinner';
-  return el;
-}
-
-/**
- * Grammar Parser
- */
+// Grammar Parser - EXACT from grammar-ui-demo.html
 function parseGrammar(grammar) {
-  const normalized = grammar
-    .replace(/\]\s*\[/g, ']\n[')
-    .trim();
+    const normalized = grammar
+        .replace(/\]\s*\[/g, ']\n[')
+        .trim();
 
-  const lines = normalized.split('\n');
-  const elements = [];
-  const stack = [];
+    const lines = normalized.split('\n');
+    const elements = [];
+    const stack = [];
 
-  for (let line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
+    for (let line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
 
-    if (trimmed.startsWith('[/')) {
-      if (stack.length > 0) {
+        if (trimmed.startsWith('[/')) {
+            if (stack.length > 0) {
+                const completed = stack.pop();
+                if (stack.length === 0) {
+                    elements.push(completed);
+                } else {
+                    stack[stack.length - 1].children.push(completed);
+                }
+            }
+            continue;
+        }
+
+        const tagMatch = trimmed.match(/^\[(\w+)(?::([^\]]+))?\]\s*(.*)/);
+        if (tagMatch) {
+            const [, type, propsStr, contentAfterTag] = tagMatch;
+            const props = {};
+
+            if (propsStr) {
+                propsStr.split(',').forEach(prop => {
+                    const parts = prop.trim().split('-');
+                    const key = parts[0];
+                    const val = parts.slice(1).join('-') || true;
+                    props[key] = val;
+                });
+            }
+
+            const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
+
+            const containerTypes = ['grid', 'container'];
+            if (!contentAfterTag && containerTypes.includes(type)) {
+                stack.push(element);
+            } else if (stack.length > 0) {
+                stack[stack.length - 1].children.push(element);
+            } else {
+                elements.push(element);
+            }
+        }
+    }
+
+    while (stack.length > 0) {
         const completed = stack.pop();
         if (stack.length === 0) {
-          elements.push(completed);
+            elements.push(completed);
         } else {
-          stack[stack.length - 1].children.push(completed);
+            stack[stack.length - 1].children.push(completed);
         }
-      }
-      continue;
     }
 
-    const tagMatch = trimmed.match(/^\[(\w+)(?::([^\]]+))?\]\s*(.*)/);
-    if (tagMatch) {
-      const [, type, propsStr, contentAfterTag] = tagMatch;
-      const props = {};
+    return elements;
+}
 
-      if (propsStr) {
-        propsStr.split(',').forEach(prop => {
-          const parts = prop.trim().split('-');
-          const key = parts[0];
-          const val = parts.slice(1).join('-') || true;
-          props[key] = val;
-        });
-      }
+// Component creators - EXACT from grammar-ui-demo.html
+function createText(props, content) {
+    const el = document.createElement('div');
+    el.className = 'text';
 
-      const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
+    const size = props.size || 'base';
+    const color = props.color || 'mid';
+    const weight = props.weight;
+    const mono = props.mono;
 
-      const containerTypes = ['grid', 'container'];
-      if (!contentAfterTag && containerTypes.includes(type)) {
-        stack.push(element);
-      } else if (stack.length > 0) {
-        stack[stack.length - 1].children.push(element);
-      } else {
-        elements.push(element);
-      }
+    el.classList.add(`text-${size}`);
+    el.classList.add(`text-${color}`);
+    if (weight === 'medium') el.classList.add('text-medium');
+    if (mono) el.classList.add('text-mono');
+
+    el.textContent = content;
+    return el;
+}
+
+function createIcon(props) {
+    const name = props.name;
+    const size = props.size || 14;
+    const color = props.color || 'primary';
+
+    if (!name || !icons[name]) {
+        console.warn(`Icon "${name}" not found`);
+        return document.createElement('span');
     }
-  }
 
-  while (stack.length > 0) {
-    const completed = stack.pop();
-    if (stack.length === 0) {
-      elements.push(completed);
+    const el = document.createElement('span');
+    el.className = `icon icon-${color}`;
+    el.innerHTML = icons[name].replace(/SIZE/g, size);
+
+    return el;
+}
+
+function createGrid(props, children) {
+    const el = document.createElement('div');
+    el.className = 'grid';
+
+    const cols = props.cols || '1';
+    const gap = props.gap || 'md';
+    const align = props.align || 'center';
+    const justify = props.justify || 'start';
+    const border = props.border === 'true';
+    const background = props.background === 'true';
+    const padding = props.padding;
+    const hover = props.hover === 'true';
+    const min = props.min;
+
+    if (cols === 'auto') {
+        el.classList.add('grid-auto');
+    } else if (cols === 'auto-fit' && min) {
+        el.style.gridTemplateColumns = `repeat(auto-fit, minmax(${min}, 1fr))`;
     } else {
-      stack[stack.length - 1].children.push(completed);
+        el.classList.add(`grid-${cols}`);
     }
-  }
 
-  return elements;
+    el.classList.add(`gap-${gap}`);
+    el.classList.add(`align-${align}`);
+    el.classList.add(`justify-${justify}`);
+
+    if (border) el.classList.add('grid-border');
+    if (background) el.classList.add('grid-bg');
+    if (padding) el.classList.add(`padding-${padding}`);
+    if (hover) el.classList.add('grid-hover');
+
+    children.forEach(child => el.appendChild(child));
+
+    return el;
 }
 
-/**
- * Grammar Renderer
- */
+function createButton(props, content, onAction) {
+    const el = document.createElement('button');
+    el.className = 'btn';
+
+    const icon = props.icon;
+    const primary = props.primary === 'true';
+    const action = props.action;
+
+    if (primary) el.classList.add('btn-primary');
+
+    if (icon) {
+        const iconEl = createIcon({ name: icon, size: 12 });
+        el.appendChild(iconEl);
+    }
+
+    const textEl = document.createElement('span');
+    textEl.textContent = content;
+    el.appendChild(textEl);
+
+    if (action && onAction) {
+        el.onclick = () => onAction(action, props);
+    }
+
+    return el;
+}
+
+function createDivider(props) {
+    const el = document.createElement('div');
+    const direction = props.direction || 'h';
+    const space = props.space || 'lg';
+
+    el.className = direction === 'h' ? 'divider-h' : 'divider-v';
+    el.classList.add(`divider-space-${space}`);
+
+    return el;
+}
+
+function createListItem(props, children) {
+    const el = document.createElement('div');
+    el.className = 'list-item';
+
+    const icon = props.icon;
+    const hover = props.hover !== 'false';
+
+    if (icon) {
+        el.classList.add('list-item-with-icon');
+        const iconEl = createIcon({ name: icon, size: 12, color: 'dim' });
+        el.appendChild(iconEl);
+    }
+
+    if (hover) el.classList.add('list-item-hover');
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.minWidth = '0';
+    children.forEach(child => contentDiv.appendChild(child));
+    el.appendChild(contentDiv);
+
+    return el;
+}
+
+function createStatus(props, content) {
+    const type = props.type || 'info';
+    const el = document.createElement('div');
+    el.className = `status status-${type}`;
+
+    const iconNames = {
+        success: 'check-circle',
+        error: 'x-circle',
+        pending: 'clock',
+        info: 'alert-circle'
+    };
+
+    const iconEl = createIcon({ name: iconNames[type], size: 14 });
+    el.appendChild(iconEl);
+
+    const textEl = createText({ size: 'sm', color: 'mid' }, content);
+    el.appendChild(textEl);
+
+    return el;
+}
+
+function createSpinner() {
+    const el = document.createElement('div');
+    el.className = 'spinner';
+    return el;
+}
+
+// Grammar Renderer - EXACT from grammar-ui-demo.html
 function renderGrammar(grammar, onAction) {
-  const elements = parseGrammar(grammar);
-  const container = document.createElement('div');
-  container.style.display = 'flex';
-  container.style.flexDirection = 'column';
-  container.style.gap = 'var(--spacing-md)';
+    const elements = parseGrammar(grammar);
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = 'var(--spacing-md)';
 
-  elements.forEach(element => {
-    const rendered = renderGrammarElement(element, onAction);
-    if (rendered) container.appendChild(rendered);
-  });
+    elements.forEach(element => {
+        const rendered = renderElement(element, onAction);
+        if (rendered) container.appendChild(rendered);
+    });
 
-  return container;
+    return container;
 }
 
-function renderGrammarElement(element, onAction) {
-  const { type, props, content, children } = element;
+function renderElement(element, onAction) {
+    const { type, props, content, children } = element;
 
-  switch (type) {
-    case 'text':
-      return createGrammarText(props, content);
+    switch (type) {
+        case 'text':
+            return createText(props, content);
 
-    case 'icon':
-      return createGrammarIcon(props);
+        case 'icon':
+            return createIcon(props);
 
-    case 'grid':
-    case 'container':
-      const childElements = [];
-      if (content) {
-        childElements.push(createGrammarText({}, content));
-      }
-      children.forEach(child => {
-        const rendered = renderGrammarElement(child, onAction);
-        if (rendered) childElements.push(rendered);
-      });
-      return createGrammarGrid(props, childElements);
+        case 'grid':
+        case 'container':
+            const childElements = [];
+            if (content) {
+                childElements.push(createText({}, content));
+            }
+            children.forEach(child => {
+                const rendered = renderElement(child, onAction);
+                if (rendered) childElements.push(rendered);
+            });
+            return createGrid(props, childElements);
 
-    case 'button':
-      return createGrammarButton(props, content, onAction);
+        case 'button':
+            return createButton(props, content, onAction);
 
-    case 'divider':
-      return createGrammarDivider(props);
+        case 'divider':
+            return createDivider(props);
 
-    case 'listitem':
-      const listChildren = [];
-      if (content) {
-        listChildren.push(createGrammarText({ size: 'sm', color: 'mid' }, content));
-      }
-      children.forEach(child => {
-        const rendered = renderGrammarElement(child, onAction);
-        if (rendered) listChildren.push(rendered);
-      });
-      return createGrammarListItem(props, listChildren);
+        case 'listitem':
+            const listChildren = [];
+            if (content) {
+                listChildren.push(createText({ size: 'sm', color: 'mid' }, content));
+            }
+            children.forEach(child => {
+                const rendered = renderElement(child, onAction);
+                if (rendered) listChildren.push(rendered);
+            });
+            return createListItem(props, listChildren);
 
-    case 'status':
-      return createGrammarStatus(props, content);
+        case 'status':
+            return createStatus(props, content);
 
-    case 'spinner':
-      return createGrammarSpinner();
+        case 'spinner':
+            return createSpinner();
 
-    default:
-      return null;
-  }
+        default:
+            return null;
+    }
 }
 
 ///// PART 0 END - GRAMMAR UI SYSTEM ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 ///// PART 1 START ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2204,6 +2195,18 @@ class ChatView extends ItemView {
       this.addMessage('system', '=== New conversation started ===');
       this.updateIndexStatus();
     };
+
+    // Debug mode toggle
+    this.debugMode = false;
+    this.debugBtn = headerButtons.createEl('button', {
+      cls: 'chat-btn',
+      text: 'Debug: OFF'
+    });
+    this.debugBtn.onclick = () => {
+      this.debugMode = !this.debugMode;
+      this.debugBtn.textContent = this.debugMode ? 'Debug: ON' : 'Debug: OFF';
+      this.debugBtn.style.background = this.debugMode ? 'var(--interactive-accent)' : '';
+    };
     
     // Index status
     this.statusEl = container.createDiv({ cls: 'index-status' });
@@ -2431,16 +2434,32 @@ class ChatView extends ItemView {
         },
         
         onToolCall: (name, args) => {
-          const toolEl = this.chatEl.createDiv({ cls: 'chat-message tool-call' });
-          toolEl.textContent = `🔧 ${name}(${JSON.stringify(args).slice(0, 100)}...)`;
-          this.scrollToBottom();
+          if (this.debugMode) {
+            // Debug ON: Show full technical details
+            const toolEl = this.chatEl.createDiv({ cls: 'chat-message tool-call' });
+            toolEl.textContent = `🔧 ${name}(${JSON.stringify(args).slice(0, 100)}...)`;
+            this.scrollToBottom();
+          } else {
+            // Debug OFF: Show brief user-friendly summary
+            const summary = this.getToolCallSummary(name, args);
+            if (summary) {  // Only show if not empty
+              const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+              const systemMsg = messageItem.createDiv({ cls: 'system-message' });
+              systemMsg.textContent = summary;
+              this.scrollToBottom();
+            }
+          }
         },
-        
+
         onToolResult: (name, result) => {
-          const resultEl = this.chatEl.createDiv({ cls: 'chat-message tool-result' });
-          const preview = JSON.stringify(result).slice(0, 150);
-          resultEl.textContent = `✓ ${name} → ${preview}...`;
-          this.scrollToBottom();
+          if (this.debugMode) {
+            // Debug ON: Show full result
+            const resultEl = this.chatEl.createDiv({ cls: 'chat-message tool-result' });
+            const preview = JSON.stringify(result).slice(0, 150);
+            resultEl.textContent = `✓ ${name} → ${preview}...`;
+            this.scrollToBottom();
+          }
+          // Debug OFF: Don't show tool results to keep UI clean
         },
         
         onApprovalNeeded: async (details) => {
@@ -2566,7 +2585,36 @@ class ChatView extends ItemView {
     const grammarPattern = /^\[(?:text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
     return grammarPattern.test(text.trim());
   }
-  
+
+  /**
+   * Get user-friendly summary for tool calls
+   */
+  getToolCallSummary(name, args) {
+    const summaries = {
+      'list_files': () => {
+        const folder = args.folder || 'vault';
+        const mode = args.mode || 'list';
+        if (mode === 'count') {
+          return `Counting files in ${folder}...`;
+        }
+        return `Searching files in ${folder}...`;
+      },
+      'read_file': () => `Reading ${args.path || 'file'}...`,
+      'search_lexical': () => `Searching for "${args.query || 'content'}"...`,
+      'retrieve_relevant_chunks': () => `Finding relevant content about "${args.query || 'topic'}"...`,
+      'output_to_user': () => null, // Don't show this in non-debug mode
+    };
+
+    const summaryFn = summaries[name];
+    if (summaryFn) {
+      const summary = summaryFn();
+      return summary || ''; // Return empty string if null
+    }
+
+    // Default summary for unknown tools
+    return `Running ${name}...`;
+  }
+
   addUsageStats(usage, iterations, elapsedMs = 0) {
     // Token breakdown (now showing totals across all API calls)
     const cachedTokens = usage.total_cached_tokens || 0;

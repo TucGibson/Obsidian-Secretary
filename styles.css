@@ -1,8 +1,10 @@
-/* ============================================================================
-   AI AGENT PLUGIN - MODERN UI STYLES (Template-Based)
-   Version: 2.0.17 - Grammar UI System with CSS Classes
-   Last Updated: 2025-10-21
-   ============================================================================ */
+/* EXACT CSS FROM CHAT UI TEMPLATE - DO NOT MODIFY */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
 :root {
     --bg-base: var(--background-primary, #000);
@@ -38,21 +40,23 @@
     --transition: 150ms ease;
 }
 
-/* ============================================================================
-   MAIN CONTAINER
-   ============================================================================ */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-base);
+    color: var(--text-mid);
+    height: 100vh;
+    overflow: hidden;
+}
 
+/* Main container */
 .chat-view {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 100vh;
     background: var(--bg-base);
 }
 
-/* ============================================================================
-   HEADER
-   ============================================================================ */
-
+/* Header */
 .chat-header {
     display: flex;
     align-items: center;
@@ -105,10 +109,7 @@
     background: var(--border);
 }
 
-/* ============================================================================
-   INDEX STATUS
-   ============================================================================ */
-
+/* Index status */
 .index-status {
     padding: 10px 20px;
     font-size: var(--font-sm);
@@ -118,10 +119,7 @@
     color: #5a7a5a;
 }
 
-/* ============================================================================
-   CHAT MESSAGES AREA
-   ============================================================================ */
-
+/* Chat messages area */
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -146,7 +144,6 @@
     max-width: 85%;
     width: fit-content;
     margin-left: auto;
-    white-space: pre-wrap;
 }
 
 /* Agent response - no bubble, just content */
@@ -166,10 +163,7 @@
     line-height: 1.6;
 }
 
-/* ============================================================================
-   GRAMMAR UI COMPONENTS
-   ============================================================================ */
-
+/* Grammar UI Components - EXACT from grammar-ui-demo */
 .text {
     line-height: 1.5;
 }
@@ -362,10 +356,7 @@
     to { transform: rotate(360deg); }
 }
 
-/* ============================================================================
-   INPUT CONTAINER
-   ============================================================================ */
-
+/* Input container */
 .chat-input-container {
     background: var(--bg-surface);
     border-top: 1px solid var(--border);
@@ -495,10 +486,6 @@
     color: var(--text-muted);
 }
 
-/* ============================================================================
-   SCROLLBAR
-   ============================================================================ */
-
 .chat-messages::-webkit-scrollbar {
     width: 8px;
 }
@@ -514,28 +501,4 @@
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
     background: #2a2a2a;
-}
-
-/* ============================================================================
-   RESPONSIVE ADJUSTMENTS
-   ============================================================================ */
-
-@media (max-width: 600px) {
-    .chat-messages {
-        max-width: 100%;
-        padding: 12px;
-    }
-
-    .chat-header {
-        padding: 12px;
-    }
-
-    .input-wrapper {
-        padding: 12px;
-    }
-
-    .toolbar {
-        padding: 8px 12px;
-        flex-wrap: wrap;
-    }
 }
