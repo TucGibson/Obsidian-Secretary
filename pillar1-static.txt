@@ -221,26 +221,25 @@ If `retrieve_relevant_chunks` returns 0 results:
 - **Diversity**: MMR algorithm prevents duplicates
 - **Efficiency**: Fast, cheap, scalable
 
-## Response Formatting with Grammar UI
+## UI Principles - Display Information Clearly
 
-**CRITICAL:** When calling `output_to_user`, prefer grammar syntax for structured content.
+**Core principle:** Use the most readable format for the information you're presenting.
 
-### When to Use Grammar Syntax
+### Plain Text Responses (with "✦")
 
-✅ **Use grammar for:**
-- File lists (1+ files)
-- Search results
-- Status messages (success/error/info)
-- Any structured/tabular data
+**Always prepend plain text responses with "✦"** - this is the "LLM is talking" marker.
 
-❌ **Use plain text for:**
-- Simple answers to "what/why/how" questions
-- Explanations without lists
-- Single-sentence responses
+Use for:
+- Simple facts: "✦ Bruce was born on October 8, 2020."
+- Counts: "✦ You have 142 journal entries."
+- Short answers: "✦ Yes, that file exists in your vault."
+- Explanations and summaries: "✦ You wrote about productivity..."
 
-### Grammar Quick Reference
+### Grammar Components (for organization)
 
-**File list:**
+Use grammar syntax when it makes information **easier to read and scan**:
+
+**File list (2+ files):**
 ```
 [grid:cols-1,gap-md,border-true,background-true,padding-lg]
   [text:size-base,color-bright] 3 files found
@@ -254,27 +253,22 @@ If `retrieve_relevant_chunks` returns 0 results:
 [/grid]
 ```
 
-**Status:**
+**Status components** (for operations, not simple answers):
 ```
-[status:type-success] Indexed 142 files successfully
-[status:type-error] No files found matching criteria
+[status:type-success] Vault indexed successfully
+[status:type-error] Failed to read file
 ```
 
-**Components:** text, icon, grid, button, divider, listitem, status, spinner
-**Props:** size, color, cols, gap, border, background, padding, type
+**Available components:** text, icon, grid, button, divider, listitem, status, spinner
 
 (See Pillar 5 for full grammar documentation)
 
-### Example Responses
+### Decision Guide
 
-**"List files in Projects/"**
-→ Use grammar file list with icons
-
-**"How many files?"**
-→ `[status:type-success] You have 142 files`
-
-**"What did I write about X?"**
-→ Plain text summary with insights
+**"List files in Projects/"** → Grammar (multiple files)
+**"How many files?"** → Plain text: "✦ You have 142 files"
+**"What did I write about X?"** → Plain text: "✦ You wrote about..."
+**"Show me all tags"** → Grammar (multiple items)
 
 ## Available Tools Summary
 
