@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent - Complete UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-base: var(--background-primary, #000);
+            --bg-surface: var(--background-secondary, #0a0a0a);
+            --bg-hover: var(--background-modifier-hover, #0f0f0f);
+            --border: var(--background-modifier-border, #1a1a1a);
+            --text-bright: var(--text-normal, #ccc);
+            --text-mid: var(--text-muted, #999);
+            --text-dim: var(--text-faint, #666);
+            --text-muted: var(--text-faint, #555);
+            --icon-primary: var(--icon-color, #666);
+            --icon-dim: var(--icon-color-focused, #555);
+            --icon-bright: var(--icon-color-hover, #888);
+            --accent: var(--interactive-accent, #1a1a2a);
+            
+            --spacing-xs: 4px;
+            --spacing-sm: 6px;
+            --spacing-md: 8px;
+            --spacing-lg: 12px;
+            --spacing-xl: 16px;
+            --spacing-2xl: 24px;
+            --spacing-3xl: 32px;
+            
+            --font-xs: 12px;
+            --font-sm: 13px;
+            --font-base: 14px;
+            --font-lg: 16px;
+            --font-xl: 18px;
+            
+            --radius-sm: 3px;
+            --radius-md: 4px;
+            
+            --transition: 150ms ease;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-base);
+            color: var(--text-mid);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Main container */
+        .chat-view {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: var(--bg-base);
+        }
+
+        /* Header */
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header strong {
+            font-size: 15px;
+            font-weight: 400;
+            color: var(--text-bright);
+        }
+
+        .version-tag {
+            font-size: 11px;
+            color: var(--text-dim);
+            background: var(--bg-surface);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+
+        .chat-header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-btn {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            color: var(--text-mid);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: var(--font-sm);
+            font-family: inherit;
+            transition: background var(--transition);
+        }
+
+        .chat-btn:hover {
+            background: var(--border);
+        }
+
+        /* Index status */
+        .index-status {
+            padding: 10px 20px;
+            font-size: var(--font-sm);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            background: var(--bg-surface);
+            color: #5a7a5a;
+        }
+
+        /* Chat messages area */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            max-width: 680px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Message items */
+        .message-item {
+            margin-bottom: 24px;
+        }
+
+        /* User message bubble */
+        .user-message {
+            background: var(--accent);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-base);
+            color: var(--text-bright);
+            max-width: 85%;
+            width: fit-content;
+            margin-left: auto;
+        }
+
+        /* Agent response - no bubble, just content */
+        .agent-response {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* System message */
+        .system-message {
+            text-align: center;
+            font-size: var(--font-sm);
+            color: var(--text-dim);
+            margin-bottom: 24px;
+            white-space: pre-line;
+            line-height: 1.6;
+        }
+
+        /* Grammar UI Components - EXACT from grammar-ui-demo */
+        .text {
+            line-height: 1.5;
+        }
+
+        .text-xs { font-size: var(--font-xs); }
+        .text-sm { font-size: var(--font-sm); }
+        .text-base { font-size: var(--font-base); }
+        .text-lg { font-size: var(--font-lg); }
+        .text-xl { font-size: var(--font-xl); }
+
+        .text-bright { color: var(--text-bright); }
+        .text-mid { color: var(--text-mid); }
+        .text-dim { color: var(--text-dim); }
+        .text-muted { color: var(--text-muted); }
+
+        .text-medium { font-weight: 500; }
+        .text-mono { font-family: monospace; }
+
+        .grid {
+            display: grid;
+            transition: all var(--transition);
+        }
+
+        .grid-1 { grid-template-columns: 1fr; }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-auto { grid-auto-flow: column; grid-template-columns: auto; }
+
+        .gap-xs { gap: var(--spacing-xs); }
+        .gap-sm { gap: var(--spacing-sm); }
+        .gap-md { gap: var(--spacing-md); }
+        .gap-lg { gap: var(--spacing-lg); }
+        .gap-xl { gap: var(--spacing-xl); }
+
+        .align-start { align-items: start; }
+        .align-center { align-items: center; }
+        .align-end { align-items: end; }
+
+        .justify-start { justify-content: start; }
+        .justify-center { justify-content: center; }
+        .justify-end { justify-content: end; }
+
+        .grid-border {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        .grid-bg {
+            background: var(--bg-surface);
+        }
+
+        .padding-xs { padding: var(--spacing-xs); }
+        .padding-sm { padding: var(--spacing-sm); }
+        .padding-md { padding: var(--spacing-md); }
+        .padding-lg { padding: var(--spacing-lg); }
+        .padding-xl { padding: var(--spacing-xl); }
+
+        .grid-hover:hover {
+            background: var(--bg-hover);
+            cursor: pointer;
+        }
+
+        .icon {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .icon-primary { color: var(--icon-primary); }
+        .icon-dim { color: var(--icon-dim); }
+        .icon-bright { color: var(--icon-bright); }
+
+        .btn {
+            background: none;
+            border: none;
+            font-size: var(--font-sm);
+            cursor: pointer;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transition: all var(--transition);
+            color: var(--text-dim);
+        }
+
+        .btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-mid);
+        }
+
+        .btn-primary {
+            color: var(--text-mid);
+        }
+
+        .btn-primary:hover {
+            color: var(--text-bright);
+        }
+
+        .divider-h {
+            height: 1px;
+            width: 100%;
+            background: var(--border);
+            grid-column: 1 / -1;
+        }
+
+        .divider-v {
+            width: 1px;
+            height: 100%;
+            background: var(--border);
+        }
+
+        .divider-space-xs { margin: var(--spacing-xs) 0; }
+        .divider-space-sm { margin: var(--spacing-sm) 0; }
+        .divider-space-md { margin: var(--spacing-md) 0; }
+        .divider-space-lg { margin: var(--spacing-lg) 0; }
+        .divider-space-xl { margin: var(--spacing-xl) 0; }
+
+        .list-item {
+            display: grid;
+            align-items: start;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) 0;
+            transition: all var(--transition);
+        }
+
+        .list-item-with-icon {
+            grid-template-columns: auto 1fr;
+        }
+
+        .list-item-hover:hover {
+            background: var(--bg-hover);
+            padding-left: var(--spacing-md);
+            padding-right: var(--spacing-md);
+            margin-left: calc(-1 * var(--spacing-md));
+            margin-right: calc(-1 * var(--spacing-md));
+            cursor: pointer;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: var(--radius-sm);
+        }
+
+        .status-success {
+            background: #3a4a3a;
+        }
+
+        .status-success .icon {
+            color: #5a7a5a;
+        }
+
+        .status-error {
+            background: #4a3a3a;
+        }
+
+        .status-error .icon {
+            color: #7a5a5a;
+        }
+
+        .status-pending {
+            background: #4a4a3a;
+        }
+
+        .status-pending .icon {
+            color: #7a7a5a;
+        }
+
+        .status-info {
+            background: #3a3a4a;
+        }
+
+        .status-info .icon {
+            color: #5a5a7a;
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 1px solid #222;
+            border-top-color: var(--icon-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Input container */
+        .chat-input-container {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .message-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            color: var(--text-bright);
+            background: transparent;
+            font-family: inherit;
+        }
+
+        .message-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--icon-primary);
+            transition: color 0.2s;
+        }
+
+        .send-btn:hover {
+            color: var(--text-bright);
+        }
+
+        .send-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            gap: 16px;
+            background: var(--bg-base);
+        }
+
+        .custom-dropdown {
+            position: relative;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+            margin: 0 8px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 4px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            min-width: 120px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 12px;
+            font-size: var(--font-sm);
+            color: var(--text-mid);
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-bright);
+        }
+
+        .dropdown-item.selected {
+            color: var(--text-bright);
+            background: var(--bg-hover);
+        }
+
+        .toolbar-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: var(--font-sm);
+            color: var(--text-dim);
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            transition: background var(--transition), color var(--transition);
+            font-family: inherit;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-mid);
+        }
+
+        .char-count {
+            margin-left: auto;
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--bg-base);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #2a2a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-view">
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <strong>AI Agent - Semantic RAG</strong>
+                <span class="version-tag">v2.0.17</span>
+            </div>
+            <div class="chat-header-buttons">
+                <button class="chat-btn" id="indexBtn">Index Vault</button>
+                <button class="chat-btn" id="resetBtn">New Chat</button>
+            </div>
+        </div>
+
+        <div class="index-status">
+            ✓ Indexed: 142 files, 1,847 chunks
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message-item">
+                <div class="system-message">AI Agent with Semantic RAG - v2.0.17
+
+✓ Vault indexed: 142 files, 1,847 chunks
+Ready to answer questions with semantic understanding!</div>
+            </div>
+
+            <div class="message-item">
+                <div class="user-message">What files are in my Projects folder?</div>
+            </div>
+
+            <div class="message-item">
+                <div class="agent-response" id="sampleResponse"></div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    class="message-input" 
+                    placeholder="Send a message"
+                    id="messageInput"
+                >
+                <button class="send-btn" id="sendBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="toolbar">
+                <div class="custom-dropdown">
+                    <button class="toolbar-btn" id="reasoningBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        <span id="reasoningLabel">Low</span>
+                    </button>
+                    <div class="dropdown-menu" id="reasoningMenu">
+                        <div class="dropdown-item" data-value="minimal">Minimal</div>
+                        <div class="dropdown-item selected" data-value="low">Low</div>
+                        <div class="dropdown-item" data-value="medium">Medium</div>
+                        <div class="dropdown-item" data-value="high">High</div>
+                    </div>
+                </div>
+
+                <div class="toolbar-divider"></div>
+
+                <div class="custom-dropdown">
+                    <button class="toolbar-btn" id="verbosityBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+                            <line x1="16" y1="8" x2="2" y2="22"></line>
+                            <line x1="17.5" y1="15" x2="9" y2="15"></line>
+                        </svg>
+                        <span id="verbosityLabel">Medium</span>
+                    </button>
+                    <div class="dropdown-menu" id="verbosityMenu">
+                        <div class="dropdown-item" data-value="low">Low</div>
+                        <div class="dropdown-item selected" data-value="medium">Medium</div>
+                        <div class="dropdown-item" data-value="high">High</div>
+                    </div>
+                </div>
+                
+                <span class="char-count" id="charCount">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // EXACT COPY from grammar-ui-demo.html
+        // Lucide icons as SVG strings
+        const icons = {
+            'file-text': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+            'file': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+            'tag': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
+            'link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>',
+            'clock': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+            'external-link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+            'move': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>',
+            'hash': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>',
+            'alert-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+            'check-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            'x-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+            'search': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+            'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
+        };
+
+        // Grammar Parser - EXACT from grammar-ui-demo.html
+        function parseGrammar(grammar) {
+            const normalized = grammar
+                .replace(/\]\s*\[/g, ']\n[')
+                .trim();
+                
+            const lines = normalized.split('\n');
+            const elements = [];
+            const stack = [];
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                
+                if (trimmed.startsWith('[/')) {
+                    if (stack.length > 0) {
+                        const completed = stack.pop();
+                        if (stack.length === 0) {
+                            elements.push(completed);
+                        } else {
+                            stack[stack.length - 1].children.push(completed);
+                        }
+                    }
+                    continue;
+                }
+                
+                const tagMatch = trimmed.match(/^\[(\w+)(?::([^\]]+))?\]\s*(.*)/);
+                if (tagMatch) {
+                    const [, type, propsStr, contentAfterTag] = tagMatch;
+                    const props = {};
+                    
+                    if (propsStr) {
+                        propsStr.split(',').forEach(prop => {
+                            const parts = prop.trim().split('-');
+                            const key = parts[0];
+                            const val = parts.slice(1).join('-') || true;
+                            props[key] = val;
+                        });
+                    }
+                    
+                    const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
+                    
+                    const containerTypes = ['grid', 'container'];
+                    if (!contentAfterTag && containerTypes.includes(type)) {
+                        stack.push(element);
+                    } else if (stack.length > 0) {
+                        stack[stack.length - 1].children.push(element);
+                    } else {
+                        elements.push(element);
+                    }
+                }
+            }
+            
+            while (stack.length > 0) {
+                const completed = stack.pop();
+                if (stack.length === 0) {
+                    elements.push(completed);
+                } else {
+                    stack[stack.length - 1].children.push(completed);
+                }
+            }
+            
+            return elements;
+        }
+
+        // Component creators - EXACT from grammar-ui-demo.html
+        function createText(props, content) {
+            const el = document.createElement('div');
+            el.className = 'text';
+            
+            const size = props.size || 'base';
+            const color = props.color || 'mid';
+            const weight = props.weight;
+            const mono = props.mono;
+            
+            el.classList.add(`text-${size}`);
+            el.classList.add(`text-${color}`);
+            if (weight === 'medium') el.classList.add('text-medium');
+            if (mono) el.classList.add('text-mono');
+            
+            el.textContent = content;
+            return el;
+        }
+
+        function createIcon(props) {
+            const name = props.name;
+            const size = props.size || 14;
+            const color = props.color || 'primary';
+            
+            if (!name || !icons[name]) {
+                console.warn(`Icon "${name}" not found`);
+                return document.createElement('span');
+            }
+            
+            const el = document.createElement('span');
+            el.className = `icon icon-${color}`;
+            el.innerHTML = icons[name].replace(/SIZE/g, size);
+            
+            return el;
+        }
+
+        function createGrid(props, children) {
+            const el = document.createElement('div');
+            el.className = 'grid';
+            
+            const cols = props.cols || '1';
+            const gap = props.gap || 'md';
+            const align = props.align || 'center';
+            const justify = props.justify || 'start';
+            const border = props.border === 'true';
+            const background = props.background === 'true';
+            const padding = props.padding;
+            const hover = props.hover === 'true';
+            const min = props.min;
+            
+            if (cols === 'auto') {
+                el.classList.add('grid-auto');
+            } else if (cols === 'auto-fit' && min) {
+                el.style.gridTemplateColumns = `repeat(auto-fit, minmax(${min}, 1fr))`;
+            } else {
+                el.classList.add(`grid-${cols}`);
+            }
+            
+            el.classList.add(`gap-${gap}`);
+            el.classList.add(`align-${align}`);
+            el.classList.add(`justify-${justify}`);
+            
+            if (border) el.classList.add('grid-border');
+            if (background) el.classList.add('grid-bg');
+            if (padding) el.classList.add(`padding-${padding}`);
+            if (hover) el.classList.add('grid-hover');
+            
+            children.forEach(child => el.appendChild(child));
+            
+            return el;
+        }
+
+        function createButton(props, content, onAction) {
+            const el = document.createElement('button');
+            el.className = 'btn';
+            
+            const icon = props.icon;
+            const primary = props.primary === 'true';
+            const action = props.action;
+            
+            if (primary) el.classList.add('btn-primary');
+            
+            if (icon) {
+                const iconEl = createIcon({ name: icon, size: 12 });
+                el.appendChild(iconEl);
+            }
+            
+            const textEl = document.createElement('span');
+            textEl.textContent = content;
+            el.appendChild(textEl);
+            
+            if (action && onAction) {
+                el.onclick = () => onAction(action, props);
+            }
+            
+            return el;
+        }
+
+        function createDivider(props) {
+            const el = document.createElement('div');
+            const direction = props.direction || 'h';
+            const space = props.space || 'lg';
+            
+            el.className = direction === 'h' ? 'divider-h' : 'divider-v';
+            el.classList.add(`divider-space-${space}`);
+            
+            return el;
+        }
+
+        function createListItem(props, children) {
+            const el = document.createElement('div');
+            el.className = 'list-item';
+            
+            const icon = props.icon;
+            const hover = props.hover !== 'false';
+            
+            if (icon) {
+                el.classList.add('list-item-with-icon');
+                const iconEl = createIcon({ name: icon, size: 12, color: 'dim' });
+                el.appendChild(iconEl);
+            }
+            
+            if (hover) el.classList.add('list-item-hover');
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.style.minWidth = '0';
+            children.forEach(child => contentDiv.appendChild(child));
+            el.appendChild(contentDiv);
+            
+            return el;
+        }
+
+        function createStatus(props, content) {
+            const type = props.type || 'info';
+            const el = document.createElement('div');
+            el.className = `status status-${type}`;
+            
+            const iconNames = {
+                success: 'check-circle',
+                error: 'x-circle',
+                pending: 'clock',
+                info: 'alert-circle'
+            };
+            
+            const iconEl = createIcon({ name: iconNames[type], size: 14 });
+            el.appendChild(iconEl);
+            
+            const textEl = createText({ size: 'sm', color: 'mid' }, content);
+            el.appendChild(textEl);
+            
+            return el;
+        }
+
+        function createSpinner() {
+            const el = document.createElement('div');
+            el.className = 'spinner';
+            return el;
+        }
+
+        // Grammar Renderer - EXACT from grammar-ui-demo.html
+        function renderGrammar(grammar, onAction) {
+            const elements = parseGrammar(grammar);
+            const container = document.createElement('div');
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = 'var(--spacing-md)';
+            
+            elements.forEach(element => {
+                const rendered = renderElement(element, onAction);
+                if (rendered) container.appendChild(rendered);
+            });
+            
+            return container;
+        }
+
+        function renderElement(element, onAction) {
+            const { type, props, content, children } = element;
+            
+            switch (type) {
+                case 'text':
+                    return createText(props, content);
+                
+                case 'icon':
+                    return createIcon(props);
+                
+                case 'grid':
+                case 'container':
+                    const childElements = [];
+                    if (content) {
+                        childElements.push(createText({}, content));
+                    }
+                    children.forEach(child => {
+                        const rendered = renderElement(child, onAction);
+                        if (rendered) childElements.push(rendered);
+                    });
+                    return createGrid(props, childElements);
+                
+                case 'button':
+                    return createButton(props, content, onAction);
+                
+                case 'divider':
+                    return createDivider(props);
+                
+                case 'listitem':
+                    const listChildren = [];
+                    if (content) {
+                        listChildren.push(createText({ size: 'sm', color: 'mid' }, content));
+                    }
+                    children.forEach(child => {
+                        const rendered = renderElement(child, onAction);
+                        if (rendered) listChildren.push(rendered);
+                    });
+                    return createListItem(props, listChildren);
+                
+                case 'status':
+                    return createStatus(props, content);
+                
+                case 'spinner':
+                    return createSpinner();
+                
+                default:
+                    return null;
+            }
+        }
+
+        // Sample response grammar
+        const sampleGrammar = `[text:size-base,color-mid] ✦ Found 12 files in /Projects
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Website.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Mobile App.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Brand Guidelines.md
+  [/grid]
+  [divider:space-md]
+  [text:size-xs,color-muted] + 9 more files
+[/grid]
+[grid:cols-auto,gap-sm]
+  [button:icon-move] Move all
+  [button:icon-tag] Tag all
+[/grid]`;
+
+        // Initialize
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const charCount = document.getElementById('charCount');
+        const chatMessages = document.getElementById('chatMessages');
+        const sampleResponse = document.getElementById('sampleResponse');
+        const reasoningBtn = document.getElementById('reasoningBtn');
+        const reasoningMenu = document.getElementById('reasoningMenu');
+        const reasoningLabel = document.getElementById('reasoningLabel');
+        const verbosityBtn = document.getElementById('verbosityBtn');
+        const verbosityMenu = document.getElementById('verbosityMenu');
+        const verbosityLabel = document.getElementById('verbosityLabel');
+
+        let reasoningEffort = 'low';
+        let verbosity = 'medium';
+
+        // Render sample response
+        const rendered = renderGrammar(sampleGrammar, (action, props) => {
+            console.log('Action:', action, props);
+            alert(`Action triggered: ${action}`);
+        });
+        sampleResponse.appendChild(rendered);
+
+        // Dropdown handling - Reasoning
+        reasoningBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            reasoningMenu.classList.toggle('show');
+            verbosityMenu.classList.remove('show');
+        });
+
+        // Dropdown handling - Verbosity
+        verbosityBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            verbosityMenu.classList.toggle('show');
+            reasoningMenu.classList.remove('show');
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            reasoningMenu.classList.remove('show');
+            verbosityMenu.classList.remove('show');
+        });
+
+        // Handle reasoning dropdown item selection
+        document.querySelectorAll('#reasoningMenu .dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Update selection
+                document.querySelectorAll('#reasoningMenu .dropdown-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                
+                // Update button label and value
+                reasoningEffort = item.dataset.value;
+                reasoningLabel.textContent = item.textContent;
+                
+                // Close menu
+                reasoningMenu.classList.remove('show');
+            });
+        });
+
+        // Handle verbosity dropdown item selection
+        document.querySelectorAll('#verbosityMenu .dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Update selection
+                document.querySelectorAll('#verbosityMenu .dropdown-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                
+                // Update button label and value
+                verbosity = item.dataset.value;
+                verbosityLabel.textContent = item.textContent;
+                
+                // Close menu
+                verbosityMenu.classList.remove('show');
+            });
+        });
+
+        // Update character count
+        messageInput.addEventListener('input', () => {
+            charCount.textContent = messageInput.value.length;
+        });
+
+        // Send message
+        sendBtn.addEventListener('click', handleSend);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSend();
+        });
+
+        function handleSend() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            const messageItem = document.createElement('div');
+            messageItem.className = 'message-item';
+            const userMsg = document.createElement('div');
+            userMsg.className = 'user-message';
+            userMsg.textContent = message;
+            messageItem.appendChild(userMsg);
+            chatMessages.appendChild(messageItem);
+
+            // Add agent response (example)
+            const agentItem = document.createElement('div');
+            agentItem.className = 'message-item';
+            const agentResponse = document.createElement('div');
+            agentResponse.className = 'agent-response';
+            
+            // Example response using grammar
+            const exampleGrammar = `[text:size-base,color-mid] ✦ I found what you're looking for
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] Example result
+  [/grid]
+[/grid]`;
+            
+            const rendered = renderGrammar(exampleGrammar, (action, props) => {
+                console.log('Action:', action, props);
+            });
+            agentResponse.appendChild(rendered);
+            agentItem.appendChild(agentResponse);
+            chatMessages.appendChild(agentItem);
+
+            messageInput.value = '';
+            charCount.textContent = '0';
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    </script>
+</body>
+</html>
