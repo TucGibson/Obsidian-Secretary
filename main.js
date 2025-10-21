@@ -1,287 +1,210 @@
 // ============================================================================
-// VERSION: 2.0.17 - Grammar UI System & Modern Chat Interface
+// VERSION: 2.0.17 - Grammar UI System with CSS Classes
 // LAST UPDATED: 2025-10-21
-// CHANGES: Implemented grammar-based UI rendering, modern chat design
+// CHANGES: CSS class-based grammar rendering (template-based)
 // ============================================================================
 
 ///// PART 0 START - GRAMMAR UI SYSTEM ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // ============================================================================
-// GRAMMAR UI SYSTEM - Vanilla JS Implementation
-// Converts grammar strings to rich UI components
+// GRAMMAR UI SYSTEM - CSS Class-Based Implementation
+// Converts grammar strings to rich UI components using CSS classes
 // ============================================================================
 
-// Design tokens - matches Obsidian theme variables
-const GRAMMAR_TOKENS = {
-  colors: {
-    bgBase: 'var(--background-primary, #000)',
-    bgSurface: 'var(--background-secondary, #0a0a0a)',
-    bgHover: 'var(--background-modifier-hover, #0f0f0f)',
-    border: 'var(--background-modifier-border, #1a1a1a)',
-    textBright: 'var(--text-normal, #ccc)',
-    textMid: 'var(--text-muted, #999)',
-    textDim: 'var(--text-faint, #666)',
-    textMuted: 'var(--text-faint, #555)',
-    iconPrimary: 'var(--icon-color, #666)',
-    iconDim: 'var(--icon-color-focused, #555)',
-    iconBright: 'var(--icon-color-hover, #888)',
-  },
-  spacing: {
-    xs: '4px',
-    sm: '6px',
-    md: '8px',
-    lg: '12px',
-    xl: '16px',
-    '2xl': '24px',
-    '3xl': '32px',
-  },
-  fontSize: {
-    xs: '12px',
-    sm: '13px',
-    base: '14px',
-    lg: '16px',
-    xl: '18px',
-  },
-  radius: {
-    sm: '3px',
-    md: '4px',
-  },
-  transition: '150ms ease',
-};
-
-// Icon SVG paths
-const ICON_SVGS = {
-  'file': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>',
-  'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>',
-  'tag': '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line>',
-  'hash': '<line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line>',
-  'link': '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>',
-  'clock': '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
-  'external-link': '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>',
-  'search': '<circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>',
-  'check-circle': '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>',
-  'x-circle': '<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>',
-  'alert-circle': '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>',
+// Icon SVG strings - Lucide icons
+const GRAMMAR_ICONS = {
+  'file-text': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+  'file': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+  'tag': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
+  'link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>',
+  'clock': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+  'external-link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+  'move': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>',
+  'hash': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>',
+  'alert-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+  'check-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+  'x-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+  'search': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+  'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
 };
 
 /**
- * Component builders
+ * Component creators using CSS classes
  */
-function buildGrammarText(props, content) {
-  const { size = 'base', color = 'mid', weight = 'normal', mono = false } = props;
-  const colorMap = {
-    bright: GRAMMAR_TOKENS.colors.textBright,
-    mid: GRAMMAR_TOKENS.colors.textMid,
-    dim: GRAMMAR_TOKENS.colors.textDim,
-    muted: GRAMMAR_TOKENS.colors.textMuted,
-  };
+function createGrammarText(props, content) {
   const el = document.createElement('div');
-  el.className = 'grammar-text';
+  el.className = 'text';
+
+  const size = props.size || 'base';
+  const color = props.color || 'mid';
+  const weight = props.weight;
+  const mono = props.mono;
+
+  el.classList.add(`text-${size}`);
+  el.classList.add(`text-${color}`);
+  if (weight === 'medium') el.classList.add('text-medium');
+  if (mono) el.classList.add('text-mono');
+
   el.textContent = content;
-  el.style.fontSize = GRAMMAR_TOKENS.fontSize[size] || GRAMMAR_TOKENS.fontSize.base;
-  el.style.color = colorMap[color] || colorMap.mid;
-  el.style.fontWeight = weight === 'medium' ? '500' : '400';
-  el.style.fontFamily = mono ? 'var(--font-monospace)' : 'inherit';
-  el.style.lineHeight = '1.5';
   return el;
 }
 
-function buildGrammarIcon(props) {
-  const { name, size = 14, color = 'primary' } = props;
-  const colorMap = {
-    primary: GRAMMAR_TOKENS.colors.iconPrimary,
-    dim: GRAMMAR_TOKENS.colors.iconDim,
-    bright: GRAMMAR_TOKENS.colors.iconBright,
-  };
+function createGrammarIcon(props) {
+  const name = props.name;
+  const size = props.size || 14;
+  const color = props.color || 'primary';
+
+  if (!name || !GRAMMAR_ICONS[name]) {
+    console.warn(`Icon "${name}" not found`);
+    return document.createElement('span');
+  }
+
   const el = document.createElement('span');
-  el.className = 'grammar-icon';
-  el.style.display = 'inline-flex';
-  el.style.alignItems = 'center';
-  el.style.flexShrink = '0';
-  el.style.marginTop = '2px';
-  const svgPath = ICON_SVGS[name] || ICON_SVGS['file'];
-  const iconColor = colorMap[color] || colorMap.primary;
-  el.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgPath}</svg>`;
+  el.className = `icon icon-${color}`;
+  el.innerHTML = GRAMMAR_ICONS[name].replace(/SIZE/g, size);
+
   return el;
 }
 
-function buildGrammarGrid(props, children) {
-  const { cols = '1', gap = 'md', min, align = 'center', justify = 'start', border = false, background = false, padding, hover = false } = props;
+function createGrammarGrid(props, children) {
   const el = document.createElement('div');
-  el.className = 'grammar-grid';
-  let gridCols;
+  el.className = 'grid';
+
+  const cols = props.cols || '1';
+  const gap = props.gap || 'md';
+  const align = props.align || 'center';
+  const justify = props.justify || 'start';
+  const border = props.border === 'true';
+  const background = props.background === 'true';
+  const padding = props.padding;
+  const hover = props.hover === 'true';
+  const min = props.min;
+
   if (cols === 'auto') {
-    gridCols = 'auto';
-  } else if (cols === 'auto-fit') {
-    const minWidth = min || '120px';
-    gridCols = `repeat(auto-fit, minmax(${minWidth}, 1fr))`;
+    el.classList.add('grid-auto');
+  } else if (cols === 'auto-fit' && min) {
+    el.style.gridTemplateColumns = `repeat(auto-fit, minmax(${min}, 1fr))`;
   } else {
-    gridCols = cols === '1' ? '1fr' : `repeat(${cols}, 1fr)`;
+    el.classList.add(`grid-${cols}`);
   }
-  el.style.display = 'grid';
-  el.style.gridTemplateColumns = gridCols;
-  el.style.gridAutoFlow = cols === 'auto' ? 'column' : 'row';
-  el.style.gap = GRAMMAR_TOKENS.spacing[gap] || GRAMMAR_TOKENS.spacing.md;
-  el.style.alignItems = align;
-  el.style.justifyContent = justify;
-  if (border) {
-    el.style.border = `1px solid ${GRAMMAR_TOKENS.colors.border}`;
-    el.style.borderRadius = GRAMMAR_TOKENS.radius.md;
-  }
-  if (background) el.style.background = GRAMMAR_TOKENS.colors.bgSurface;
-  if (padding) el.style.padding = GRAMMAR_TOKENS.spacing[padding] || padding;
-  if (hover) {
-    el.style.cursor = 'pointer';
-    el.style.transition = `all ${GRAMMAR_TOKENS.transition}`;
-    el.addEventListener('mouseenter', () => { el.style.background = GRAMMAR_TOKENS.colors.bgHover; });
-    el.addEventListener('mouseleave', () => { el.style.background = background ? GRAMMAR_TOKENS.colors.bgSurface : ''; });
-  }
-  if (children && children.length > 0) {
-    children.forEach(child => { if (child) el.appendChild(child); });
-  }
+
+  el.classList.add(`gap-${gap}`);
+  el.classList.add(`align-${align}`);
+  el.classList.add(`justify-${justify}`);
+
+  if (border) el.classList.add('grid-border');
+  if (background) el.classList.add('grid-bg');
+  if (padding) el.classList.add(`padding-${padding}`);
+  if (hover) el.classList.add('grid-hover');
+
+  children.forEach(child => el.appendChild(child));
+
   return el;
 }
 
-function buildGrammarButton(props, content) {
-  const { icon, primary = false, action } = props;
+function createGrammarButton(props, content, onAction) {
   const el = document.createElement('button');
-  el.className = 'grammar-button';
-  el.textContent = content;
-  el.style.background = 'none';
-  el.style.border = 'none';
-  el.style.color = primary ? GRAMMAR_TOKENS.colors.textMid : GRAMMAR_TOKENS.colors.textDim;
-  el.style.fontSize = GRAMMAR_TOKENS.fontSize.sm;
-  el.style.cursor = 'pointer';
-  el.style.padding = `${GRAMMAR_TOKENS.spacing.sm} ${GRAMMAR_TOKENS.spacing.md}`;
-  el.style.borderRadius = GRAMMAR_TOKENS.radius.sm;
-  el.style.display = 'flex';
-  el.style.alignItems = 'center';
-  el.style.gap = GRAMMAR_TOKENS.spacing.sm;
-  el.style.transition = `all ${GRAMMAR_TOKENS.transition}`;
-  if (icon) {
-    const iconEl = buildGrammarIcon({ name: icon, size: 12 });
-    el.insertBefore(iconEl, el.firstChild);
-  }
-  el.addEventListener('mouseenter', () => {
-    el.style.background = GRAMMAR_TOKENS.colors.bgHover;
-    el.style.color = primary ? GRAMMAR_TOKENS.colors.textBright : GRAMMAR_TOKENS.colors.textMid;
-  });
-  el.addEventListener('mouseleave', () => {
-    el.style.background = 'none';
-    el.style.color = primary ? GRAMMAR_TOKENS.colors.textMid : GRAMMAR_TOKENS.colors.textDim;
-  });
-  if (action) el.dataset.action = action;
-  return el;
-}
+  el.className = 'btn';
 
-function buildGrammarDivider(props) {
-  const { direction = 'h', space = 'lg' } = props;
-  const el = document.createElement('div');
-  el.className = 'grammar-divider';
-  const isHorizontal = direction === 'h';
-  if (isHorizontal) {
-    el.style.height = '1px';
-    el.style.width = '100%';
-    el.style.margin = `${GRAMMAR_TOKENS.spacing[space]} 0`;
-    el.style.gridColumn = '1 / -1';
-  } else {
-    el.style.width = '1px';
-    el.style.height = '100%';
-    el.style.margin = `0 ${GRAMMAR_TOKENS.spacing[space]}`;
-  }
-  el.style.background = GRAMMAR_TOKENS.colors.border;
-  return el;
-}
+  const icon = props.icon;
+  const primary = props.primary === 'true';
+  const action = props.action;
 
-function buildGrammarListItem(props, children) {
-  const { icon, hover = true } = props;
-  const el = document.createElement('div');
-  el.className = 'grammar-list-item';
-  el.style.display = 'grid';
-  el.style.gridTemplateColumns = icon ? 'auto 1fr' : '1fr';
-  el.style.alignItems = 'start';
-  el.style.gap = GRAMMAR_TOKENS.spacing.md;
-  el.style.padding = `${GRAMMAR_TOKENS.spacing.md} 0`;
-  el.style.transition = `all ${GRAMMAR_TOKENS.transition}`;
-  if (hover) {
-    el.style.cursor = 'pointer';
-    el.addEventListener('mouseenter', () => {
-      el.style.background = GRAMMAR_TOKENS.colors.bgHover;
-      el.style.paddingLeft = GRAMMAR_TOKENS.spacing.md;
-      el.style.paddingRight = GRAMMAR_TOKENS.spacing.md;
-      el.style.marginLeft = `-${GRAMMAR_TOKENS.spacing.md}`;
-      el.style.marginRight = `-${GRAMMAR_TOKENS.spacing.md}`;
-    });
-    el.addEventListener('mouseleave', () => {
-      el.style.background = 'transparent';
-      el.style.paddingLeft = '0';
-      el.style.paddingRight = '0';
-      el.style.marginLeft = '0';
-      el.style.marginRight = '0';
-    });
-  }
+  if (primary) el.classList.add('btn-primary');
+
   if (icon) {
-    const iconEl = buildGrammarIcon({ name: icon, size: 12, color: 'dim' });
+    const iconEl = createGrammarIcon({ name: icon, size: 12 });
     el.appendChild(iconEl);
   }
-  const contentWrapper = document.createElement('div');
-  contentWrapper.style.minWidth = '0';
-  if (children && children.length > 0) {
-    children.forEach(child => { if (child) contentWrapper.appendChild(child); });
-  }
-  el.appendChild(contentWrapper);
-  return el;
-}
 
-function buildGrammarStatus(props, content) {
-  const { type = 'info' } = props;
-  const config = {
-    success: { icon: 'check-circle', bg: '#3a4a3a', iconColor: '#5a7a5a' },
-    error: { icon: 'x-circle', bg: '#4a3a3a', iconColor: '#7a5a5a' },
-    pending: { icon: 'clock', bg: '#4a4a3a', iconColor: '#7a7a5a' },
-    info: { icon: 'alert-circle', bg: '#3a3a4a', iconColor: '#5a5a7a' },
-  };
-  const { icon, bg, iconColor } = config[type] || config.info;
-  const el = document.createElement('div');
-  el.className = 'grammar-status';
-  el.style.display = 'flex';
-  el.style.alignItems = 'center';
-  el.style.gap = GRAMMAR_TOKENS.spacing.md;
-  el.style.padding = `${GRAMMAR_TOKENS.spacing.md} ${GRAMMAR_TOKENS.spacing.lg}`;
-  el.style.background = bg;
-  el.style.border = '1px solid rgba(255,255,255,0.05)';
-  el.style.borderRadius = GRAMMAR_TOKENS.radius.sm;
-  const iconEl = buildGrammarIcon({ name: icon, size: 14 });
-  iconEl.querySelector('svg').setAttribute('stroke', iconColor);
-  const textEl = buildGrammarText({ size: 'sm', color: 'mid' }, content);
-  el.appendChild(iconEl);
+  const textEl = document.createElement('span');
+  textEl.textContent = content;
   el.appendChild(textEl);
+
+  if (action && onAction) {
+    el.onclick = () => onAction(action, props);
+  }
+
   return el;
 }
 
-function buildGrammarSpinner() {
+function createGrammarDivider(props) {
   const el = document.createElement('div');
-  el.className = 'grammar-spinner';
-  el.style.width = '14px';
-  el.style.height = '14px';
-  el.style.border = '1px solid #222';
-  el.style.borderTopColor = GRAMMAR_TOKENS.colors.iconPrimary;
-  el.style.borderRadius = '50%';
-  el.style.animation = 'grammar-spin 1s linear infinite';
+  const direction = props.direction || 'h';
+  const space = props.space || 'lg';
+
+  el.className = direction === 'h' ? 'divider-h' : 'divider-v';
+  el.classList.add(`divider-space-${space}`);
+
+  return el;
+}
+
+function createGrammarListItem(props, children) {
+  const el = document.createElement('div');
+  el.className = 'list-item';
+
+  const icon = props.icon;
+  const hover = props.hover !== 'false';
+
+  if (icon) {
+    el.classList.add('list-item-with-icon');
+    const iconEl = createGrammarIcon({ name: icon, size: 12, color: 'dim' });
+    el.appendChild(iconEl);
+  }
+
+  if (hover) el.classList.add('list-item-hover');
+
+  const contentDiv = document.createElement('div');
+  contentDiv.style.minWidth = '0';
+  children.forEach(child => contentDiv.appendChild(child));
+  el.appendChild(contentDiv);
+
+  return el;
+}
+
+function createGrammarStatus(props, content) {
+  const type = props.type || 'info';
+  const el = document.createElement('div');
+  el.className = `status status-${type}`;
+
+  const iconNames = {
+    success: 'check-circle',
+    error: 'x-circle',
+    pending: 'clock',
+    info: 'alert-circle'
+  };
+
+  const iconEl = createGrammarIcon({ name: iconNames[type], size: 14 });
+  el.appendChild(iconEl);
+
+  const textEl = createGrammarText({ size: 'sm', color: 'mid' }, content);
+  el.appendChild(textEl);
+
+  return el;
+}
+
+function createGrammarSpinner() {
+  const el = document.createElement('div');
+  el.className = 'spinner';
   return el;
 }
 
 /**
- * Grammar parser
+ * Grammar Parser
  */
 function parseGrammar(grammar) {
-  const normalized = grammar.replace(/\]\s*\[/g, ']\n[').trim();
+  const normalized = grammar
+    .replace(/\]\s*\[/g, ']\n[')
+    .trim();
+
   const lines = normalized.split('\n');
   const elements = [];
   const stack = [];
+
   for (let line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+
     if (trimmed.startsWith('[/')) {
       if (stack.length > 0) {
         const completed = stack.pop();
@@ -293,26 +216,24 @@ function parseGrammar(grammar) {
       }
       continue;
     }
+
     const tagMatch = trimmed.match(/^\[(\w+)(?::([^\]]+))?\]\s*(.*)/);
     if (tagMatch) {
       const [, type, propsStr, contentAfterTag] = tagMatch;
       const props = {};
+
       if (propsStr) {
         propsStr.split(',').forEach(prop => {
           const parts = prop.trim().split('-');
           const key = parts[0];
           const val = parts.slice(1).join('-') || true;
-          if (val === 'true') {
-            props[key] = true;
-          } else if (val === 'false') {
-            props[key] = false;
-          } else {
-            props[key] = val;
-          }
+          props[key] = val;
         });
       }
+
       const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
-      const containerTypes = ['grid', 'container', 'listitem'];
+
+      const containerTypes = ['grid', 'container'];
       if (!contentAfterTag && containerTypes.includes(type)) {
         stack.push(element);
       } else if (stack.length > 0) {
@@ -322,6 +243,7 @@ function parseGrammar(grammar) {
       }
     }
   }
+
   while (stack.length > 0) {
     const completed = stack.pop();
     if (stack.length === 0) {
@@ -330,68 +252,76 @@ function parseGrammar(grammar) {
       stack[stack.length - 1].children.push(completed);
     }
   }
+
   return elements;
 }
 
 /**
- * Render element
- */
-function renderGrammarElement(element, onAction) {
-  const { type, props, content, children } = element;
-  switch (type) {
-    case 'text':
-      return buildGrammarText(props, content);
-    case 'icon':
-      return buildGrammarIcon(props);
-    case 'grid':
-    case 'container':
-      const childElements = children.map(child => renderGrammarElement(child, onAction));
-      const grid = buildGrammarGrid(props, childElements);
-      if (content) {
-        const textEl = buildGrammarText({}, content);
-        grid.insertBefore(textEl, grid.firstChild);
-      }
-      return grid;
-    case 'button':
-      const button = buildGrammarButton(props, content);
-      if (onAction && props.action) {
-        button.addEventListener('click', () => { onAction(props.action, props); });
-      }
-      return button;
-    case 'divider':
-      return buildGrammarDivider(props);
-    case 'listitem':
-      const listChildren = children.map(child => renderGrammarElement(child, onAction));
-      const listItem = buildGrammarListItem(props, listChildren);
-      if (content) {
-        const textEl = buildGrammarText({ size: 'sm', color: 'mid' }, content);
-        listItem.querySelector('div').insertBefore(textEl, listItem.querySelector('div').firstChild);
-      }
-      return listItem;
-    case 'status':
-      return buildGrammarStatus(props, content);
-    case 'spinner':
-      return buildGrammarSpinner();
-    default:
-      return null;
-  }
-}
-
-/**
- * Main render function
+ * Grammar Renderer
  */
 function renderGrammar(grammar, onAction) {
+  const elements = parseGrammar(grammar);
   const container = document.createElement('div');
-  container.className = 'grammar-renderer';
   container.style.display = 'flex';
   container.style.flexDirection = 'column';
-  container.style.gap = GRAMMAR_TOKENS.spacing.md;
-  const elements = parseGrammar(grammar);
+  container.style.gap = 'var(--spacing-md)';
+
   elements.forEach(element => {
     const rendered = renderGrammarElement(element, onAction);
     if (rendered) container.appendChild(rendered);
   });
+
   return container;
+}
+
+function renderGrammarElement(element, onAction) {
+  const { type, props, content, children } = element;
+
+  switch (type) {
+    case 'text':
+      return createGrammarText(props, content);
+
+    case 'icon':
+      return createGrammarIcon(props);
+
+    case 'grid':
+    case 'container':
+      const childElements = [];
+      if (content) {
+        childElements.push(createGrammarText({}, content));
+      }
+      children.forEach(child => {
+        const rendered = renderGrammarElement(child, onAction);
+        if (rendered) childElements.push(rendered);
+      });
+      return createGrammarGrid(props, childElements);
+
+    case 'button':
+      return createGrammarButton(props, content, onAction);
+
+    case 'divider':
+      return createGrammarDivider(props);
+
+    case 'listitem':
+      const listChildren = [];
+      if (content) {
+        listChildren.push(createGrammarText({ size: 'sm', color: 'mid' }, content));
+      }
+      children.forEach(child => {
+        const rendered = renderGrammarElement(child, onAction);
+        if (rendered) listChildren.push(rendered);
+      });
+      return createGrammarListItem(props, listChildren);
+
+    case 'status':
+      return createGrammarStatus(props, content);
+
+    case 'spinner':
+      return createGrammarSpinner();
+
+    default:
+      return null;
+  }
 }
 
 ///// PART 0 END - GRAMMAR UI SYSTEM ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2576,28 +2506,54 @@ class ChatView extends ItemView {
   }
   
   addMessage(role, text) {
-    const msgEl = this.chatEl.createDiv({ cls: `chat-message ${role}` });
+    // Create message wrapper with template classes
+    const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
 
-    // Check if this is an assistant message with grammar syntax
-    if (role === 'assistant' && this.isGrammarSyntax(text)) {
-      try {
-        const grammarEl = renderGrammar(text, (action, props) => {
-          console.log('Grammar action:', action, props);
-          // Handle grammar actions here (e.g., button clicks)
-          new Notice(`Action: ${action}`);
-        });
-        msgEl.appendChild(grammarEl);
-      } catch (error) {
-        console.error('[ChatView] Grammar rendering error:', error);
-        // Fallback to plain text if grammar rendering fails
-        msgEl.textContent = text;
+    // Create role-specific content element
+    let contentEl;
+
+    if (role === 'user') {
+      // User messages: right-aligned bubble with accent background
+      contentEl = messageItem.createDiv({ cls: 'user-message' });
+      contentEl.textContent = text;
+    } else if (role === 'assistant') {
+      // Agent responses: no bubble, grammar-rendered or plain text
+      contentEl = messageItem.createDiv({ cls: 'agent-response' });
+
+      // Check if this is grammar syntax
+      if (this.isGrammarSyntax(text)) {
+        try {
+          const grammarEl = renderGrammar(text, (action, props) => {
+            console.log('Grammar action:', action, props);
+            // Handle grammar actions here (e.g., button clicks)
+            new Notice(`Action: ${action}`);
+          });
+          contentEl.appendChild(grammarEl);
+        } catch (error) {
+          console.error('[ChatView] Grammar rendering error:', error);
+          // Fallback to plain text if grammar rendering fails
+          contentEl.textContent = text;
+        }
+      } else {
+        contentEl.textContent = text;
       }
+    } else if (role === 'system') {
+      // System messages: centered, dimmed text
+      contentEl = messageItem.createDiv({ cls: 'system-message' });
+      contentEl.textContent = text;
+    } else if (role === 'error') {
+      // Error messages: use system style with error indicator
+      contentEl = messageItem.createDiv({ cls: 'system-message' });
+      contentEl.textContent = `❌ ${text}`;
+      contentEl.style.color = 'var(--text-error)';
     } else {
-      msgEl.textContent = text;
+      // Fallback for any other role
+      contentEl = messageItem.createDiv({ cls: 'system-message' });
+      contentEl.textContent = text;
     }
 
     this.scrollToBottom();
-    return msgEl;
+    return messageItem;
   }
 
   /**
@@ -2650,7 +2606,9 @@ class ChatView extends ItemView {
       `• Total Cost: $${costTotal.toFixed(6)}`
     ];
 
-    const statsEl = this.chatEl.createDiv({ cls: 'chat-message stats' });
+    // Create stats message using template classes (system message style)
+    const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+    const statsEl = messageItem.createDiv({ cls: 'system-message' });
     statsEl.textContent = statsLines.join('\n');
     this.scrollToBottom();
   }
