@@ -357,9 +357,12 @@ function createStack(props, children) {
     const gap = props.gap || 'md';
     const align = props.align || 'stretch';
 
-    // Stack uses flexbox
-    el.style.display = 'flex';
-    el.style.flexDirection = direction === 'vertical' ? 'column' : 'row';
+    // Apply direction via data attribute for CSS
+    if (direction === 'horizontal') {
+        el.setAttribute('data-direction', 'horizontal');
+    }
+
+    // Dynamic properties via inline styles
     el.style.gap = `var(--spacing-${gap})`;
     el.style.alignItems = align;
 
@@ -374,21 +377,10 @@ function createCard(props, children) {
 
     const hover = props.hover === 'true';
 
-    // Card styling
-    el.style.border = '1px solid var(--border)';
-    el.style.borderRadius = 'var(--radius-md)';
-    el.style.background = 'var(--bg-surface)';
-    el.style.padding = 'var(--spacing-lg)';
-    el.style.transition = 'all var(--transition)';
-
+    // Base card styling comes from CSS
+    // Only add hover behavior if requested
     if (hover) {
         el.style.cursor = 'pointer';
-        el.addEventListener('mouseenter', () => {
-            el.style.background = 'var(--bg-hover)';
-        });
-        el.addEventListener('mouseleave', () => {
-            el.style.background = 'var(--bg-surface)';
-        });
     }
 
     children.forEach(child => el.appendChild(child));
@@ -402,25 +394,10 @@ function createBadge(props, content) {
 
     const variant = props.variant || 'default';
 
-    // Badge styling
-    el.style.display = 'inline-flex';
-    el.style.alignItems = 'center';
-    el.style.padding = '2px var(--spacing-sm)';
-    el.style.fontSize = 'var(--font-sm)';
-    el.style.borderRadius = 'var(--radius-sm)';
-    el.style.border = '1px solid rgba(255,255,255,0.05)';
-
-    // Variant colors
-    const variants = {
-        default: { bg: 'var(--bg-surface)', color: 'var(--text-dim)' },
-        accent: { bg: 'rgba(124, 58, 237, 0.2)', color: '#7c3aed' },
-        success: { bg: '#3a4a3a', color: '#5a7a5a' },
-        error: { bg: '#4a3a3a', color: '#7a5a5a' }
-    };
-
-    const style = variants[variant] || variants.default;
-    el.style.background = style.bg;
-    el.style.color = style.color;
+    // Use data-variant attribute for CSS styling
+    if (variant !== 'default') {
+        el.setAttribute('data-variant', variant);
+    }
 
     el.textContent = content;
 

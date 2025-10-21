@@ -389,6 +389,56 @@ button.btn.btn:hover,
     to { transform: rotate(360deg); }
 }
 
+/* Stack component - flexbox container */
+.stack {
+    display: flex;
+    flex-direction: column; /* default vertical */
+}
+
+.stack[data-direction="horizontal"] {
+    flex-direction: row;
+}
+
+/* Card component - bordered container */
+.card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    padding: var(--spacing-lg);
+    transition: all var(--transition);
+}
+
+.card:hover {
+    background: var(--bg-hover);
+}
+
+/* Badge component - inline tag */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px var(--spacing-sm);
+    font-size: var(--font-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255,255,255,0.05);
+    background: var(--bg-surface);
+    color: var(--text-dim);
+}
+
+.badge[data-variant="accent"] {
+    background: rgba(124, 58, 237, 0.2);
+    color: #7c3aed;
+}
+
+.badge[data-variant="success"] {
+    background: #3a4a3a;
+    color: #5a7a5a;
+}
+
+.badge[data-variant="error"] {
+    background: #4a3a3a;
+    color: #7a5a5a;
+}
+
 /* Input container */
 .chat-input-container {
     background: var(--bg-surface);
