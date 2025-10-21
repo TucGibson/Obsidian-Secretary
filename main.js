@@ -1951,15 +1951,20 @@ class ChatView extends ItemView {
       this.sendBtn.style.color = 'var(--text-muted)';
     };
 
-    // Toolbar with reasoning selector
+    // Toolbar
     const toolbar = inputContainer.createDiv({ cls: 'toolbar' });
     toolbar.style.display = 'flex';
     toolbar.style.alignItems = 'center';
     toolbar.style.padding = '12px 20px';
     toolbar.style.gap = '16px';
 
-    // Reasoning effort selector as toolbar button
-    const reasoningBtn = toolbar.createDiv({ cls: 'toolbar-btn' });
+    // Reasoning effort toolbar button
+    const reasoningBtn = toolbar.createEl('button', {
+      cls: 'toolbar-btn'
+    });
+    reasoningBtn.style.background = 'none';
+    reasoningBtn.style.border = 'none';
+    reasoningBtn.style.cursor = 'pointer';
     reasoningBtn.style.display = 'flex';
     reasoningBtn.style.alignItems = 'center';
     reasoningBtn.style.gap = '6px';
@@ -1968,11 +1973,10 @@ class ChatView extends ItemView {
     reasoningBtn.style.padding = '6px 10px';
     reasoningBtn.style.borderRadius = '6px';
     reasoningBtn.style.transition = 'background 0.2s, color 0.2s';
-    reasoningBtn.style.cursor = 'pointer';
+    reasoningBtn.style.fontFamily = 'var(--font-text)';
 
-    // Brain icon for reasoning
-    const reasoningIcon = reasoningBtn.createEl('span');
-    reasoningIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+    // Brain icon
+    reasoningBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
       <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
       <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
     </svg>`;
@@ -1987,6 +1991,8 @@ class ChatView extends ItemView {
     this.reasoningSelect.style.fontSize = '14px';
     this.reasoningSelect.style.color = 'inherit';
     this.reasoningSelect.style.fontFamily = 'inherit';
+    this.reasoningSelect.style.appearance = 'none';
+    this.reasoningSelect.style.paddingRight = '0';
 
     // Add options
     const options = [
