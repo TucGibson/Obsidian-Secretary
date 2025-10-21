@@ -1902,36 +1902,93 @@ class ChatView extends ItemView {
     this.addMessage('system', welcomeMsg);
 
     const inputContainer = container.createDiv({ cls: 'chat-input-container' });
-    inputContainer.style.padding = '12px';
-    inputContainer.style.borderTop = '1px solid var(--background-modifier-border)';
     inputContainer.style.background = 'var(--background-primary)';
+    inputContainer.style.borderTop = '1px solid var(--background-modifier-border)';
 
-    // Compact reasoning effort selector
-    const controlsRow = inputContainer.createDiv({ cls: 'chat-controls-row' });
-    controlsRow.style.display = 'flex';
-    controlsRow.style.alignItems = 'center';
-    controlsRow.style.gap = '6px';
-    controlsRow.style.marginBottom = '10px';
-    controlsRow.style.fontSize = '12px';
-    controlsRow.style.color = 'var(--text-muted)';
+    // Main input wrapper - single line with inline send button
+    const inputWrapper = inputContainer.createDiv({ cls: 'input-wrapper' });
+    inputWrapper.style.display = 'flex';
+    inputWrapper.style.alignItems = 'center';
+    inputWrapper.style.padding = '16px 20px';
+    inputWrapper.style.gap = '12px';
+    inputWrapper.style.borderBottom = '1px solid var(--background-modifier-border)';
 
-    const reasoningLabel = controlsRow.createEl('span', {
-      text: 'Reasoning:',
-      cls: 'reasoning-label'
+    this.inputEl = inputWrapper.createEl('input', {
+      cls: 'message-input',
+      attr: { type: 'text', placeholder: 'Send a message' }
     });
+    this.inputEl.style.flex = '1';
+    this.inputEl.style.border = 'none';
+    this.inputEl.style.outline = 'none';
+    this.inputEl.style.fontSize = '15px';
+    this.inputEl.style.color = 'var(--text-normal)';
+    this.inputEl.style.background = 'transparent';
+    this.inputEl.style.fontFamily = 'var(--font-text)';
 
-    this.reasoningSelect = controlsRow.createEl('select', {
+    this.sendBtn = inputWrapper.createEl('button', {
+      cls: 'send-btn',
+      attr: { 'aria-label': 'Send message' }
+    });
+    this.sendBtn.style.background = 'none';
+    this.sendBtn.style.border = 'none';
+    this.sendBtn.style.cursor = 'pointer';
+    this.sendBtn.style.padding = '4px';
+    this.sendBtn.style.display = 'flex';
+    this.sendBtn.style.alignItems = 'center';
+    this.sendBtn.style.justifyContent = 'center';
+    this.sendBtn.style.color = 'var(--text-muted)';
+    this.sendBtn.style.transition = 'color 0.2s';
+
+    // Send icon (paper plane)
+    this.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+    </svg>`;
+
+    this.sendBtn.onmouseenter = () => {
+      this.sendBtn.style.color = 'var(--text-normal)';
+    };
+    this.sendBtn.onmouseleave = () => {
+      this.sendBtn.style.color = 'var(--text-muted)';
+    };
+
+    // Toolbar with reasoning selector
+    const toolbar = inputContainer.createDiv({ cls: 'toolbar' });
+    toolbar.style.display = 'flex';
+    toolbar.style.alignItems = 'center';
+    toolbar.style.padding = '12px 20px';
+    toolbar.style.gap = '16px';
+
+    // Reasoning effort selector as toolbar button
+    const reasoningBtn = toolbar.createDiv({ cls: 'toolbar-btn' });
+    reasoningBtn.style.display = 'flex';
+    reasoningBtn.style.alignItems = 'center';
+    reasoningBtn.style.gap = '6px';
+    reasoningBtn.style.fontSize = '14px';
+    reasoningBtn.style.color = 'var(--text-muted)';
+    reasoningBtn.style.padding = '6px 10px';
+    reasoningBtn.style.borderRadius = '6px';
+    reasoningBtn.style.transition = 'background 0.2s, color 0.2s';
+    reasoningBtn.style.cursor = 'pointer';
+
+    // Brain icon for reasoning
+    const reasoningIcon = reasoningBtn.createEl('span');
+    reasoningIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+    </svg>`;
+
+    this.reasoningSelect = reasoningBtn.createEl('select', {
       cls: 'reasoning-select'
     });
-    this.reasoningSelect.style.padding = '2px 6px';
-    this.reasoningSelect.style.borderRadius = '3px';
-    this.reasoningSelect.style.border = '1px solid var(--background-modifier-border)';
-    this.reasoningSelect.style.background = 'var(--background-primary)';
-    this.reasoningSelect.style.color = 'var(--text-normal)';
+    this.reasoningSelect.style.background = 'none';
+    this.reasoningSelect.style.border = 'none';
+    this.reasoningSelect.style.outline = 'none';
     this.reasoningSelect.style.cursor = 'pointer';
-    this.reasoningSelect.style.fontSize = '11px';
+    this.reasoningSelect.style.fontSize = '14px';
+    this.reasoningSelect.style.color = 'inherit';
+    this.reasoningSelect.style.fontFamily = 'inherit';
 
-    // Add options (default to 'low' as requested)
+    // Add options
     const options = [
       { value: 'minimal', label: 'Minimal' },
       { value: 'low', label: 'Low' },
@@ -1949,74 +2006,18 @@ class ChatView extends ItemView {
       }
     });
 
-    // Input wrapper with send button
-    const inputWrapper = inputContainer.createDiv({ cls: 'chat-input-wrapper' });
-    inputWrapper.style.display = 'flex';
-    inputWrapper.style.alignItems = 'flex-end';
-    inputWrapper.style.gap = '8px';
-    inputWrapper.style.background = 'var(--background-secondary)';
-    inputWrapper.style.border = '1px solid var(--background-modifier-border)';
-    inputWrapper.style.borderRadius = '8px';
-    inputWrapper.style.padding = '8px';
-    inputWrapper.style.transition = 'border-color 0.2s';
-
-    this.inputEl = inputWrapper.createEl('textarea', {
-      cls: 'chat-input',
-      placeholder: 'Ask me anything about your vault...'
-    });
-    this.inputEl.style.flex = '1';
-    this.inputEl.style.border = 'none';
-    this.inputEl.style.background = 'transparent';
-    this.inputEl.style.resize = 'none';
-    this.inputEl.style.outline = 'none';
-    this.inputEl.style.fontSize = '14px';
-    this.inputEl.style.fontFamily = 'var(--font-text)';
-    this.inputEl.style.color = 'var(--text-normal)';
-    this.inputEl.style.minHeight = '20px';
-    this.inputEl.style.maxHeight = '200px';
-    this.inputEl.style.overflowY = 'auto';
-    this.inputEl.rows = 1;
-
-    this.sendBtn = inputWrapper.createEl('button', {
-      cls: 'chat-send-btn',
-      text: '↑'
-    });
-    this.sendBtn.style.padding = '8px 12px';
-    this.sendBtn.style.borderRadius = '6px';
-    this.sendBtn.style.border = 'none';
-    this.sendBtn.style.background = 'var(--interactive-accent)';
-    this.sendBtn.style.color = 'var(--text-on-accent)';
-    this.sendBtn.style.cursor = 'pointer';
-    this.sendBtn.style.fontSize = '16px';
-    this.sendBtn.style.fontWeight = 'bold';
-    this.sendBtn.style.transition = 'opacity 0.2s';
-    this.sendBtn.style.flexShrink = '0';
-
-    // Hover effect for send button
-    this.sendBtn.onmouseenter = () => {
-      this.sendBtn.style.opacity = '0.9';
+    reasoningBtn.onmouseenter = () => {
+      reasoningBtn.style.background = 'var(--background-modifier-hover)';
+      reasoningBtn.style.color = 'var(--text-normal)';
     };
-    this.sendBtn.onmouseleave = () => {
-      this.sendBtn.style.opacity = '1';
-    };
-
-    // Auto-expand textarea
-    this.inputEl.oninput = () => {
-      this.inputEl.style.height = 'auto';
-      this.inputEl.style.height = Math.min(this.inputEl.scrollHeight, 200) + 'px';
-    };
-
-    // Focus effect for input wrapper
-    this.inputEl.onfocus = () => {
-      inputWrapper.style.borderColor = 'var(--interactive-accent)';
-    };
-    this.inputEl.onblur = () => {
-      inputWrapper.style.borderColor = 'var(--background-modifier-border)';
+    reasoningBtn.onmouseleave = () => {
+      reasoningBtn.style.background = 'transparent';
+      reasoningBtn.style.color = 'var(--text-muted)';
     };
 
     this.sendBtn.onclick = () => this.handleSend();
-    this.inputEl.onkeydown = (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+    this.inputEl.onkeypress = (e) => {
+      if (e.key === 'Enter') {
         e.preventDefault();
         this.handleSend();
       }
@@ -2085,7 +2086,6 @@ class ChatView extends ItemView {
     if (!message) return;
 
     this.inputEl.value = '';
-    this.inputEl.style.height = 'auto'; // Reset height after sending
     this.inputEl.disabled = true;
     this.sendBtn.disabled = true;
 
