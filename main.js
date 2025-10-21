@@ -2173,7 +2173,7 @@ class ChatView extends ItemView {
     headerLeft.createEl('strong', { text: 'AI Agent - Semantic RAG' });
     headerLeft.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.19'
+      text: 'v2.0.20'
     });
 
     // Right side - buttons
@@ -2215,7 +2215,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.19\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.20\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -2807,6 +2807,97 @@ class AIAgentSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }
         }));
+
+    // Grammar UI Demo Section
+    containerEl.createEl('h3', { text: 'Grammar UI Demo' });
+
+    const demoDesc = containerEl.createDiv();
+    demoDesc.createEl('p', {
+      text: 'Test grammar syntax rendering. Enter grammar syntax below to see live preview.'
+    });
+
+    // Grammar input textarea
+    const grammarInput = containerEl.createEl('textarea', {
+      placeholder: 'Enter grammar syntax here...\n\nExample:\n[text:size-base,color-mid] ✦ Found 3 files\n[grid:cols-1,gap-md,border-true,background-true,padding-lg]\n  [grid:cols-auto,gap-sm]\n    [icon:name-file,size-12,color-dim]\n    [text:size-sm,color-mid] /Projects/Website.md\n  [/grid]\n[/grid]'
+    });
+    grammarInput.style.width = '100%';
+    grammarInput.style.minHeight = '200px';
+    grammarInput.style.marginBottom = '16px';
+    grammarInput.style.fontFamily = 'monospace';
+    grammarInput.style.fontSize = '13px';
+    grammarInput.style.padding = '12px';
+    grammarInput.style.background = 'var(--background-primary)';
+    grammarInput.style.border = '1px solid var(--background-modifier-border)';
+    grammarInput.style.borderRadius = '4px';
+    grammarInput.style.color = 'var(--text-normal)';
+    grammarInput.style.resize = 'vertical';
+
+    // Set default example
+    grammarInput.value = `[text:size-base,color-mid] ✦ Found 3 files in /Projects
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Website.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Mobile App.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Brand Guidelines.md
+  [/grid]
+  [divider:space-md]
+  [text:size-xs,color-muted] View all files
+[/grid]`;
+
+    // Preview label
+    containerEl.createEl('p', {
+      text: 'Preview:',
+      attr: { style: 'margin-bottom: 8px; font-weight: 500;' }
+    });
+
+    // Preview container
+    const previewContainer = containerEl.createDiv();
+    previewContainer.style.padding = '20px';
+    previewContainer.style.background = 'var(--background-primary)';
+    previewContainer.style.border = '1px solid var(--background-modifier-border)';
+    previewContainer.style.borderRadius = '4px';
+    previewContainer.style.minHeight = '100px';
+    previewContainer.style.marginBottom = '24px';
+
+    // Render function
+    const updatePreview = () => {
+      previewContainer.empty();
+      const grammar = grammarInput.value.trim();
+
+      if (!grammar) {
+        previewContainer.createEl('p', {
+          text: 'Enter grammar syntax above to see preview...',
+          attr: { style: 'color: var(--text-muted);' }
+        });
+        return;
+      }
+
+      try {
+        const rendered = renderGrammar(grammar, (action, props) => {
+          console.log('Grammar action:', action, props);
+          new Notice(`Action: ${action}`);
+        });
+        previewContainer.appendChild(rendered);
+      } catch (error) {
+        previewContainer.createEl('p', {
+          text: `Error: ${error.message}`,
+          attr: { style: 'color: var(--text-error);' }
+        });
+      }
+    };
+
+    // Initial render
+    updatePreview();
+
+    // Update on input
+    grammarInput.addEventListener('input', updatePreview);
 
     containerEl.createEl('h3', { text: 'About' });
     
