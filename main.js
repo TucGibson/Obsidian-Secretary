@@ -2173,7 +2173,7 @@ class ChatView extends ItemView {
     headerLeft.createEl('strong', { text: 'AI Agent - Semantic RAG' });
     headerLeft.createEl('span', {
       cls: 'version-tag',
-      text: 'v2.0.24'
+      text: 'v2.0.25'
     });
 
     // Right side - buttons
@@ -2215,7 +2215,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.24\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v2.0.25\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -2546,22 +2546,45 @@ class ChatView extends ItemView {
 
       // Check if this is grammar syntax
       if (this.isGrammarSyntax(text)) {
-        // Grammar syntax: render as-is
         try {
-          const grammarEl = renderGrammar(text, (action, props) => {
-            console.log('Grammar action:', action, props);
-            // Handle grammar actions here (e.g., button clicks)
-            new Notice(`Action: ${action}`);
-          });
-          contentEl.appendChild(grammarEl);
+          // Check if text has "✦" intro before grammar
+          const grammarPattern = /\[(?:text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
+          const grammarMatch = text.match(grammarPattern);
+
+          if (grammarMatch && grammarMatch.index > 0) {
+            // Mixed content: "✦ intro" + grammar
+            const introText = text.substring(0, grammarMatch.index).trim();
+            const grammarText = text.substring(grammarMatch.index).trim();
+
+            // Render intro text
+            if (introText) {
+              const introEl = contentEl.createDiv({ cls: 'message-intro' });
+              introEl.textContent = introText;
+              introEl.style.marginBottom = '12px';
+            }
+
+            // Render grammar
+            const grammarEl = renderGrammar(grammarText, (action, props) => {
+              console.log('Grammar action:', action, props);
+              new Notice(`Action: ${action}`);
+            });
+            contentEl.appendChild(grammarEl);
+          } else {
+            // Pure grammar: render as-is
+            const grammarEl = renderGrammar(text, (action, props) => {
+              console.log('Grammar action:', action, props);
+              new Notice(`Action: ${action}`);
+            });
+            contentEl.appendChild(grammarEl);
+          }
         } catch (error) {
           console.error('[ChatView] Grammar rendering error:', error);
           // Fallback to plain text if grammar rendering fails
-          contentEl.textContent = '✦ ' + text;
+          contentEl.textContent = text.startsWith('✦') ? text : '✦ ' + text;
         }
       } else {
-        // Plain text: auto-prepend "✦" marker
-        contentEl.textContent = '✦ ' + text;
+        // Plain text: auto-prepend "✦" marker if not already there
+        contentEl.textContent = text.startsWith('✦') ? text : '✦ ' + text;
       }
     } else if (role === 'system') {
       // System messages: centered, dimmed text
@@ -2588,9 +2611,9 @@ class ChatView extends ItemView {
   isGrammarSyntax(text) {
     if (typeof text !== 'string') return false;
 
-    // Check for grammar patterns like [text:...], [grid:...], etc.
-    const grammarPattern = /^\[(?:text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
-    return grammarPattern.test(text.trim());
+    // Check for grammar patterns anywhere in the text
+    const grammarPattern = /\[(?:text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
+    return grammarPattern.test(text);
   }
 
   /**
