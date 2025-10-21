@@ -2225,123 +2225,128 @@ class ChatView extends ItemView {
 
     this.addMessage('system', welcomeMsg);
 
+    // EXACT COPY from Chat UI Template - Input container
     const inputContainer = container.createDiv({ cls: 'chat-input-container' });
-    inputContainer.style.background = 'var(--background-primary)';
-    inputContainer.style.borderTop = '1px solid var(--background-modifier-border)';
 
-    // Input wrapper - exactly like example
+    // Input wrapper
     const inputWrapper = inputContainer.createDiv({ cls: 'input-wrapper' });
-    inputWrapper.style.display = 'flex';
-    inputWrapper.style.alignItems = 'center';
-    inputWrapper.style.padding = '16px 20px';
-    inputWrapper.style.gap = '12px';
-    inputWrapper.style.borderBottom = '1px solid var(--background-modifier-border)';
 
     this.inputEl = inputWrapper.createEl('input', {
       cls: 'message-input',
       attr: { type: 'text', placeholder: 'Send a message' }
     });
-    this.inputEl.style.flex = '1';
-    this.inputEl.style.border = 'none';
-    this.inputEl.style.outline = 'none';
-    this.inputEl.style.fontSize = '15px';
-    this.inputEl.style.color = 'var(--text-normal)';
-    this.inputEl.style.background = 'transparent';
-    this.inputEl.style.fontFamily = 'var(--font-text)';
 
-    this.sendBtn = inputWrapper.createEl('button', {
-      cls: 'send-btn',
-      attr: { 'aria-label': 'Send message' }
-    });
-    this.sendBtn.style.background = 'none';
-    this.sendBtn.style.border = 'none';
-    this.sendBtn.style.cursor = 'pointer';
-    this.sendBtn.style.padding = '4px';
-    this.sendBtn.style.display = 'flex';
-    this.sendBtn.style.alignItems = 'center';
-    this.sendBtn.style.justifyContent = 'center';
-    this.sendBtn.style.color = 'var(--text-muted)';
-    this.sendBtn.style.transition = 'color 0.2s';
-
-    this.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+    this.sendBtn = inputWrapper.createEl('button', { cls: 'send-btn' });
+    this.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
     </svg>`;
 
-    this.sendBtn.onmouseenter = () => {
-      this.sendBtn.style.color = 'var(--text-normal)';
-    };
-    this.sendBtn.onmouseleave = () => {
-      this.sendBtn.style.color = 'var(--text-muted)';
-    };
-
-    // Toolbar - exactly like example
+    // Toolbar
     const toolbar = inputContainer.createDiv({ cls: 'toolbar' });
-    toolbar.style.display = 'flex';
-    toolbar.style.alignItems = 'center';
-    toolbar.style.padding = '12px 20px';
-    toolbar.style.gap = '16px';
 
-    // Reasoning button - follows exact toolbar-btn pattern from example
-    const reasoningBtn = toolbar.createEl('button', { cls: 'toolbar-btn' });
-    reasoningBtn.style.background = 'none';
-    reasoningBtn.style.border = 'none';
-    reasoningBtn.style.cursor = 'pointer';
-    reasoningBtn.style.display = 'flex';
-    reasoningBtn.style.alignItems = 'center';
-    reasoningBtn.style.gap = '6px';
-    reasoningBtn.style.fontSize = '14px';
-    reasoningBtn.style.color = 'var(--text-muted)';
-    reasoningBtn.style.padding = '6px 10px';
-    reasoningBtn.style.borderRadius = '6px';
-    reasoningBtn.style.transition = 'background 0.2s, color 0.2s';
-    reasoningBtn.style.fontFamily = 'inherit';
-
-    const reasoningIcon = reasoningBtn.createEl('span');
-    reasoningIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
-      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
-      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+    // Reasoning dropdown
+    const reasoningDropdown = toolbar.createDiv({ cls: 'custom-dropdown' });
+    const reasoningBtn = reasoningDropdown.createEl('button', { cls: 'toolbar-btn' });
+    reasoningBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
     </svg>`;
+    this.reasoningLabel = reasoningBtn.createEl('span');
+    this.reasoningLabel.textContent = 'Low';
 
-    const reasoningText = reasoningBtn.createEl('span');
-    reasoningText.textContent = 'Reasoning: ';
-
-    this.reasoningSelect = reasoningBtn.createEl('select', { cls: 'reasoning-select' });
-    this.reasoningSelect.style.background = 'none';
-    this.reasoningSelect.style.border = 'none';
-    this.reasoningSelect.style.outline = 'none';
-    this.reasoningSelect.style.cursor = 'pointer';
-    this.reasoningSelect.style.fontSize = '14px';
-    this.reasoningSelect.style.color = 'inherit';
-    this.reasoningSelect.style.fontFamily = 'inherit';
-    this.reasoningSelect.style.padding = '0';
-    this.reasoningSelect.style.margin = '0';
-
-    const options = [
+    this.reasoningMenu = reasoningDropdown.createDiv({ cls: 'dropdown-menu' });
+    const reasoningOptions = [
       { value: 'minimal', label: 'Minimal' },
-      { value: 'low', label: 'Low' },
+      { value: 'low', label: 'Low', selected: true },
       { value: 'medium', label: 'Medium' },
       { value: 'high', label: 'High' }
     ];
-
-    options.forEach(opt => {
-      const option = this.reasoningSelect.createEl('option', {
-        value: opt.value,
-        text: opt.label
-      });
-      if (opt.value === 'low') {
-        option.selected = true;
-      }
+    reasoningOptions.forEach(opt => {
+      const item = this.reasoningMenu.createDiv({ cls: 'dropdown-item' });
+      if (opt.selected) item.classList.add('selected');
+      item.textContent = opt.label;
+      item.dataset.value = opt.value;
     });
 
-    reasoningBtn.onmouseenter = () => {
-      reasoningBtn.style.background = 'var(--background-modifier-hover)';
-      reasoningBtn.style.color = 'var(--text-normal)';
-    };
-    reasoningBtn.onmouseleave = () => {
-      reasoningBtn.style.background = 'transparent';
-      reasoningBtn.style.color = 'var(--text-muted)';
-    };
+    // Toolbar divider
+    toolbar.createDiv({ cls: 'toolbar-divider' });
 
+    // Verbosity dropdown
+    const verbosityDropdown = toolbar.createDiv({ cls: 'custom-dropdown' });
+    const verbosityBtn = verbosityDropdown.createEl('button', { cls: 'toolbar-btn' });
+    verbosityBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+      <line x1="16" y1="8" x2="2" y2="22"></line>
+      <line x1="17.5" y1="15" x2="9" y2="15"></line>
+    </svg>`;
+    this.verbosityLabel = verbosityBtn.createEl('span');
+    this.verbosityLabel.textContent = 'Medium';
+
+    this.verbosityMenu = verbosityDropdown.createDiv({ cls: 'dropdown-menu' });
+    const verbosityOptions = [
+      { value: 'low', label: 'Low' },
+      { value: 'medium', label: 'Medium', selected: true },
+      { value: 'high', label: 'High' }
+    ];
+    verbosityOptions.forEach(opt => {
+      const item = this.verbosityMenu.createDiv({ cls: 'dropdown-item' });
+      if (opt.selected) item.classList.add('selected');
+      item.textContent = opt.label;
+      item.dataset.value = opt.value;
+    });
+
+    // Character count
+    this.charCount = toolbar.createEl('span', { cls: 'char-count' });
+    this.charCount.textContent = '0';
+
+    // EXACT dropdown handlers from template
+    reasoningBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.reasoningMenu.classList.toggle('show');
+      this.verbosityMenu.classList.remove('show');
+    });
+
+    verbosityBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.verbosityMenu.classList.toggle('show');
+      this.reasoningMenu.classList.remove('show');
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+      this.reasoningMenu.classList.remove('show');
+      this.verbosityMenu.classList.remove('show');
+    });
+
+    // Handle reasoning dropdown item selection
+    this.reasoningMenu.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.reasoningMenu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        this.plugin.settings.reasoningEffort = item.dataset.value;
+        this.reasoningLabel.textContent = item.textContent;
+        this.reasoningMenu.classList.remove('show');
+      });
+    });
+
+    // Handle verbosity dropdown item selection
+    this.verbosityMenu.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.verbosityMenu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        this.plugin.settings.textVerbosity = item.dataset.value;
+        this.verbosityLabel.textContent = item.textContent;
+        this.verbosityMenu.classList.remove('show');
+      });
+    });
+
+    // Update character count
+    this.inputEl.addEventListener('input', () => {
+      this.charCount.textContent = this.inputEl.value.length;
+    });
+
+    // Send handlers
     this.sendBtn.onclick = () => this.handleSend();
     this.inputEl.onkeypress = (e) => {
       if (e.key === 'Enter') {
@@ -2541,6 +2546,7 @@ class ChatView extends ItemView {
 
       // Check if this is grammar syntax
       if (this.isGrammarSyntax(text)) {
+        // Grammar syntax: render as-is
         try {
           const grammarEl = renderGrammar(text, (action, props) => {
             console.log('Grammar action:', action, props);
@@ -2551,10 +2557,11 @@ class ChatView extends ItemView {
         } catch (error) {
           console.error('[ChatView] Grammar rendering error:', error);
           // Fallback to plain text if grammar rendering fails
-          contentEl.textContent = text;
+          contentEl.textContent = '✦ ' + text;
         }
       } else {
-        contentEl.textContent = text;
+        // Plain text: auto-prepend "✦" marker
+        contentEl.textContent = '✦ ' + text;
       }
     } else if (role === 'system') {
       // System messages: centered, dimmed text
