@@ -1,778 +1,934 @@
-import React, { useState } from 'react';
-import * as Icons from 'lucide-react';
-
-// Design tokens
-const tokens = {
-  colors: {
-    bgBase: 'var(--background-primary, #000)',
-    bgSurface: 'var(--background-secondary, #0a0a0a)',
-    bgHover: 'var(--background-modifier-hover, #0f0f0f)',
-    border: 'var(--background-modifier-border, #1a1a1a)',
-    textBright: 'var(--text-normal, #ccc)',
-    textMid: 'var(--text-muted, #999)',
-    textDim: 'var(--text-faint, #666)',
-    textMuted: 'var(--text-faint, #555)',
-    iconPrimary: 'var(--icon-color, #666)',
-    iconDim: 'var(--icon-color-focused, #555)',
-    iconBright: 'var(--icon-color-hover, #888)',
-    accent: 'var(--interactive-accent, #7c3aed)',
-  },
-  spacing: {
-    xs: '4px',
-    sm: '6px',
-    md: '8px',
-    lg: '12px',
-    xl: '16px',
-    '2xl': '24px',
-    '3xl': '32px',
-  },
-  fontSize: {
-    xs: '12px',
-    sm: '13px',
-    base: '14px',
-    lg: '16px',
-    xl: '18px',
-  },
-  radius: {
-    sm: '3px',
-    md: '4px',
-  },
-  transition: '150ms ease',
-};
-
-// Text Component
-export const Text = ({ 
-  size = 'base', 
-  color = 'mid', 
-  weight = 'normal',
-  mono = false,
-  link = false,
-  onClick,
-  children,
-  style = {}
-}) => {
-  const colorMap = {
-    bright: tokens.colors.textBright,
-    mid: tokens.colors.textMid,
-    dim: tokens.colors.textDim,
-    muted: tokens.colors.textMuted,
-  };
-
-  const baseStyle = {
-    fontSize: tokens.fontSize[size],
-    color: colorMap[color],
-    fontWeight: weight === 'medium' ? 500 : 400,
-    fontFamily: mono ? 'monospace' : 'inherit',
-    lineHeight: '1.5',
-    ...style
-  };
-
-  if (link) {
-    return (
-      <div 
-        style={{
-          ...baseStyle,
-          cursor: 'pointer',
-          color: tokens.colors.accent,
-          textDecoration: 'none',
-        }}
-        onClick={onClick}
-      >
-        {children}
-      </div>
-    );
-  }
-
-  return (
-    <div style={baseStyle}>
-      {children}
-    </div>
-  );
-};
-
-// Icon Component
-export const Icon = ({ name, size = 14, color = 'primary' }) => {
-  if (!name) return null;
-  
-  const pascalName = name.split('-').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-  ).join('');
-  
-  const IconComponent = Icons[pascalName];
-  
-  if (!IconComponent) {
-    console.warn(`Icon "${name}" (${pascalName}) not found in lucide-react`);
-    return null;
-  }
-
-  const colorMap = {
-    primary: tokens.colors.iconPrimary,
-    dim: tokens.colors.iconDim,
-    bright: tokens.colors.iconBright,
-  };
-
-  return <IconComponent size={size} color={colorMap[color]} style={{ flexShrink: 0, marginTop: '2px' }} />;
-};
-
-// Badge Component
-export const Badge = ({ children, variant = 'default' }) => {
-  const variants = {
-    default: { bg: tokens.colors.bgSurface, color: tokens.colors.textDim },
-    accent: { bg: tokens.colors.accent + '20', color: tokens.colors.accent },
-    success: { bg: '#3a4a3a', color: '#5a7a5a' },
-    error: { bg: '#4a3a3a', color: '#7a5a5a' },
-  };
-
-  const style = variants[variant] || variants.default;
-
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: `2px ${tokens.spacing.sm}`,
-      background: style.bg,
-      color: style.color,
-      fontSize: tokens.fontSize.sm,
-      borderRadius: tokens.radius.sm,
-      border: '1px solid rgba(255,255,255,0.05)',
-    }}>
-      {children}
-    </span>
-  );
-};
-
-// Card Component
-export const Card = ({ children, hover = false, onClick }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => hover && setIsHovered(true)}
-      onMouseLeave={() => hover && setIsHovered(false)}
-      style={{
-        border: `1px solid ${tokens.colors.border}`,
-        borderRadius: tokens.radius.md,
-        background: isHovered ? tokens.colors.bgHover : tokens.colors.bgSurface,
-        padding: tokens.spacing.lg,
-        cursor: hover ? 'pointer' : 'default',
-        transition: `all ${tokens.transition}`,
-      }}
-    >
-      {children}
-    </div>
-  );
-};
-
-// Stack Component
-export const Stack = ({ direction = 'vertical', gap = 'md', align = 'stretch', children, style = {} }) => {
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: direction === 'vertical' ? 'column' : 'row',
-      gap: tokens.spacing[gap],
-      alignItems: align,
-      ...style
-    }}>
-      {children}
-    </div>
-  );
-};
-
-// Link Component
-export const Link = ({ icon, href, onClick, children }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <a
-      href={href}
-      onClick={(e) => {
-        if (onClick) {
-          e.preventDefault();
-          onClick();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grammar UI System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: tokens.spacing.xs,
-        color: isHovered ? tokens.colors.textBright : tokens.colors.textMid,
-        textDecoration: 'none',
-        fontSize: tokens.fontSize.sm,
-        cursor: 'pointer',
-        transition: `color ${tokens.transition}`,
-      }}
-    >
-      {icon && <Icon name={icon} size={12} />}
-      {children}
-    </a>
-  );
-};
 
-// Grid Component
-export const Grid = ({ 
-  cols = '1',
-  gap = 'md',
-  min,
-  align = 'center',
-  justify = 'start',
-  border = false,
-  background = false,
-  padding,
-  hover = false,
-  children,
-  style = {}
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background-primary, #000);
+            color: var(--text-muted, #999);
+            min-height: 100vh;
+            padding: 24px;
+        }
 
-  let gridCols;
-  if (cols === 'auto') {
-    gridCols = 'auto';
-  } else if (cols === 'auto-fit') {
-    const minWidth = min || '120px';
-    gridCols = `repeat(auto-fit, minmax(${minWidth}, 1fr))`;
-  } else {
-    gridCols = cols === '1' ? '1fr' : `repeat(${cols}, 1fr)`;
-  }
-
-  const baseStyle = {
-    display: 'grid',
-    gridTemplateColumns: gridCols,
-    gridAutoFlow: cols === 'auto' ? 'column' : 'row',
-    gap: tokens.spacing[gap],
-    alignItems: align,
-    justifyContent: justify,
-    ...(border && { border: `1px solid ${tokens.colors.border}` }),
-    ...(background && { background: tokens.colors.bgSurface }),
-    ...(padding && { padding: tokens.spacing[padding] }),
-    ...(border && { borderRadius: tokens.radius.md }),
-    ...(hover && isHovered && { background: tokens.colors.bgHover }),
-    ...(hover && { cursor: 'pointer' }),
-    transition: `all ${tokens.transition}`,
-    ...style
-  };
-
-  return (
-    <div 
-      style={baseStyle}
-      onMouseEnter={() => hover && setIsHovered(true)}
-      onMouseLeave={() => hover && setIsHovered(false)}
-    >
-      {children}
-    </div>
-  );
-};
-
-// Button Component
-export const Button = ({ icon, primary = false, onClick, children, ariaLabel }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      aria-label={ariaLabel}
-      style={{
-        background: isHovered ? tokens.colors.bgHover : 'none',
-        border: 'none',
-        color: isHovered ? (primary ? tokens.colors.textBright : tokens.colors.textMid) : (primary ? tokens.colors.textMid : tokens.colors.textDim),
-        fontSize: tokens.fontSize.sm,
-        cursor: 'pointer',
-        padding: `${tokens.spacing.sm} ${tokens.spacing.md}`,
-        borderRadius: tokens.radius.sm,
-        display: 'flex',
-        alignItems: 'center',
-        gap: tokens.spacing.sm,
-        transition: `all ${tokens.transition}`,
-      }}
-    >
-      {icon && <Icon name={icon} size={12} />}
-      <span>{children}</span>
-    </button>
-  );
-};
-
-// Divider Component
-export const Divider = ({ direction = 'h', space = 'lg' }) => {
-  const isHorizontal = direction === 'h';
-  
-  return (
-    <div style={{
-      ...(isHorizontal ? {
-        height: '1px',
-        width: '100%',
-        margin: `${tokens.spacing[space]} 0`,
-      } : {
-        width: '1px',
-        height: '100%',
-        margin: `0 ${tokens.spacing[space]}`
-      }),
-      background: tokens.colors.border,
-    }} />
-  );
-};
-
-// Status Component
-export const Status = ({ type = 'info', children }) => {
-  const config = {
-    success: { icon: 'CheckCircle', bg: '#3a4a3a', iconColor: '#5a7a5a' },
-    error: { icon: 'XCircle', bg: '#4a3a3a', iconColor: '#7a5a5a' },
-    pending: { icon: 'Clock', bg: '#4a4a3a', iconColor: '#7a7a5a' },
-    info: { icon: 'AlertCircle', bg: '#3a3a4a', iconColor: '#5a5a7a' },
-  };
-
-  const { icon, bg, iconColor } = config[type];
-  const IconComp = Icons[icon];
-
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: tokens.spacing.md,
-      padding: `${tokens.spacing.md} ${tokens.spacing.lg}`,
-      background: bg,
-      border: '1px solid rgba(255,255,255,0.05)',
-      borderRadius: tokens.radius.sm,
-    }}>
-      <IconComp size={14} color={iconColor} style={{ flexShrink: 0 }} />
-      <Text size="sm" color="mid">{children}</Text>
-    </div>
-  );
-};
-
-// Spinner Component
-export const Spinner = () => {
-  return (
-    <div style={{
-      width: '14px',
-      height: '14px',
-      border: '1px solid #222',
-      borderTopColor: tokens.colors.iconPrimary,
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite',
-    }} />
-  );
-};
-
-// Demo Component with Direct React Rendering
-export default function Demo() {
-  const [activeTab, setActiveTab] = useState('semantic');
-  const [lastAction, setLastAction] = useState(null);
-
-  const handleAction = (action) => {
-    setLastAction(action);
-    console.log('Action triggered:', action);
-  };
-  
-  const formatFilePath = (path) => {
-    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-    const parts = cleanPath.split('/');
-    const filename = parts[parts.length - 1];
-    const basename = filename.replace(/\.md$/, '');
-    return `[[${basename}]]`;
-  };
-
-  return (
-    <div style={{
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      background: tokens.colors.bgBase,
-      color: tokens.colors.textMid,
-      minHeight: '100vh',
-      padding: '24px'
-    }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <Text size="xl" color="bright" style={{ marginBottom: '8px' }}>
-          Enhanced Grammar UI System
-        </Text>
-        <Text size="sm" color="dim" style={{ marginBottom: '24px' }}>
-          Two-tier grammar with semantic shortcuts & clickable wikilinks
-        </Text>
-
-        <Grid cols="auto" gap="sm" style={{ marginBottom: '24px' }}>
-          <Button primary={activeTab === 'semantic'} onClick={() => setActiveTab('semantic')}>
-            Semantic Layer
-          </Button>
-          <Button primary={activeTab === 'components'} onClick={() => setActiveTab('components')}>
-            Components
-          </Button>
-          <Button primary={activeTab === 'editor'} onClick={() => setActiveTab('editor')}>
-            Editor
-          </Button>
-        </Grid>
-
-        {lastAction && (
-          <Status type="info" style={{ marginBottom: '16px' }}>
-            {lastAction.type === 'file-click' 
-              ? `Clicked file: ${lastAction.path}` 
-              : `Action: ${lastAction.type}`
-            }
-          </Status>
-        )}
-
-        {activeTab === 'semantic' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        /* Design tokens as CSS variables */
+        :root {
+            --bg-base: var(--background-primary, #000);
+            --bg-surface: var(--background-secondary, #0a0a0a);
+            --bg-hover: var(--background-modifier-hover, #0f0f0f);
+            --border: var(--background-modifier-border, #1a1a1a);
+            --text-bright: var(--text-normal, #ccc);
+            --text-mid: var(--text-muted, #999);
+            --text-dim: var(--text-faint, #666);
+            --text-muted: var(--text-faint, #555);
+            --icon-primary: var(--icon-color, #666);
+            --icon-dim: var(--icon-color-focused, #555);
+            --icon-bright: var(--icon-color-hover, #888);
             
-            <div>
-              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                File List with Clickable Wikilinks
-              </Text>
-              
-              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                Grammar:
-              </Text>
-              <pre style={{
-                background: tokens.colors.bgSurface,
-                border: `1px solid ${tokens.colors.border}`,
-                borderRadius: tokens.radius.md,
-                padding: tokens.spacing.lg,
-                fontSize: tokens.fontSize.xs,
-                color: tokens.colors.textMid,
-                overflow: 'auto',
-                marginBottom: '16px',
-                fontFamily: 'monospace',
-                whiteSpace: 'pre-wrap'
-              }}>{`[text:size-sm,color-mid] ✦ Found 3 files in Projects
-[divider:space-md]
-[stack:gap-sm]
-  [file-list-item:path-Projects/Website.md,link-true,icon-file-text]
-  [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text,badge-Modified]
-  [file-list-item:path-Projects/Brand-Guidelines.md,link-true,icon-file-text]
-[/stack]`}</pre>
-              
-              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                Rendered:
-              </Text>
-              <Text size="sm" color="mid" style={{ marginBottom: '16px' }}>
-                ✦ Found 3 files in Projects
-              </Text>
-              <Divider space="md" />
-              <Stack gap="sm" style={{ marginTop: '16px' }}>
-                <Grid cols="auto" gap="sm" align="center">
-                  <Icon name="file-text" size={12} color="dim" />
-                  <Text 
-                    size="sm" 
-                    color="mid" 
-                    link={true}
-                    onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Website.md') })}
-                  >
-                    {formatFilePath('Projects/Website.md')}
-                  </Text>
-                </Grid>
-                <Grid cols="auto" gap="sm" align="center">
-                  <Icon name="file-text" size={12} color="dim" />
-                  <Text 
-                    size="sm" 
-                    color="mid" 
-                    link={true}
-                    onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Mobile-App.md') })}
-                  >
-                    {formatFilePath('Projects/Mobile-App.md')}
-                  </Text>
-                  <Badge>Modified</Badge>
-                </Grid>
-                <Grid cols="auto" gap="sm" align="center">
-                  <Icon name="file-text" size={12} color="dim" />
-                  <Text 
-                    size="sm" 
-                    color="mid" 
-                    link={true}
-                    onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Brand-Guidelines.md') })}
-                  >
-                    {formatFilePath('Projects/Brand-Guidelines.md')}
-                  </Text>
-                </Grid>
-              </Stack>
-            </div>
-
-            <div>
-              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                Search Results with Context
-              </Text>
-              
-              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                Grammar:
-              </Text>
-              <pre style={{
-                background: tokens.colors.bgSurface,
-                border: `1px solid ${tokens.colors.border}`,
-                borderRadius: tokens.radius.md,
-                padding: tokens.spacing.lg,
-                fontSize: tokens.fontSize.xs,
-                color: tokens.colors.textMid,
-                overflow: 'auto',
-                marginBottom: '16px',
-                fontFamily: 'monospace',
-                whiteSpace: 'pre-wrap'
-              }}>{`[text:size-sm,color-mid] ✦ Found 2 entries mentioning "Emma"
-[divider:space-md]
-[stack:gap-md]
-  [search-result:path-Journal/2024-03-15.md,link-true,preview-Emma had her first birthday party...,matches-3]
-  [search-result:path-Projects/Website.md,link-true,preview-Meeting with Emma...,matches-2]
-[/stack]`}</pre>
-              
-              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                Rendered:
-              </Text>
-              <Text size="sm" color="mid" style={{ marginBottom: '16px' }}>
-                ✦ Found 2 entries mentioning "Emma"
-              </Text>
-              <Divider space="md" />
-              <Stack gap="md" style={{ marginTop: '16px' }}>
-                <Card hover={true}>
-                  <Stack gap="sm">
-                    <Grid cols="auto" gap="sm" align="center">
-                      <Icon name="file-text" size={12} color="dim" />
-                      <Text 
-                        size="sm" 
-                        color="mid"
-                        link={true}
-                        onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Journal/2024-03-15.md') })}
-                      >
-                        {formatFilePath('Journal/2024-03-15.md')}
-                      </Text>
-                    </Grid>
-                    <Text size="sm" color="dim">
-                      Emma had her first birthday party today and it was magical...
-                    </Text>
-                    <Badge variant="accent">3 matches</Badge>
-                  </Stack>
-                </Card>
-                <Card hover={true}>
-                  <Stack gap="sm">
-                    <Grid cols="auto" gap="sm" align="center">
-                      <Icon name="file-text" size={12} color="dim" />
-                      <Text 
-                        size="sm" 
-                        color="mid"
-                        link={true}
-                        onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Website.md') })}
-                      >
-                        {formatFilePath('Projects/Website.md')}
-                      </Text>
-                    </Grid>
-                    <Text size="sm" color="dim">
-                      Meeting with Emma to discuss design direction...
-                    </Text>
-                    <Badge variant="accent">2 matches</Badge>
-                  </Stack>
-                </Card>
-              </Stack>
-            </div>
-
-            <div>
-              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                File Details with Actions
-              </Text>
-              <Text size="sm" color="mid" style={{ marginBottom: '16px' }}>
-                ✦ Here's what I found about that file
-              </Text>
-              <Divider space="md" />
-              <div style={{ marginTop: '16px' }}>
-                <Card>
-                  <Stack gap="sm">
-                    <Grid cols="auto" gap="sm" align="center">
-                      <Icon name="file-text" size={14} color="dim" />
-                      <Text 
-                        size="sm" 
-                        color="bright"
-                        link={true}
-                        onClick={() => handleAction({ type: 'file-click', path: formatFilePath('Projects/Website-Redesign.md') })}
-                      >
-                        {formatFilePath('Projects/Website-Redesign.md')}
-                      </Text>
-                    </Grid>
-                    <Grid cols="auto" gap="sm" align="center">
-                      <Icon name="tag" size={12} color="dim" />
-                      <Text size="sm" color="dim">#project #design #2024</Text>
-                    </Grid>
-                    <Grid cols="auto" gap="sm" align="center">
-                      <Icon name="clock" size={12} color="dim" />
-                      <Text size="sm" color="dim">Modified: 2024-03-15</Text>
-                    </Grid>
-                  </Stack>
-                </Card>
-                <Grid cols="auto" gap="sm" style={{ marginTop: '8px' }}>
-                  <Button icon="external-link" onClick={() => handleAction({ type: 'open', action: 'open' })}>
-                    Open file
-                  </Button>
-                  <Button icon="link" onClick={() => handleAction({ type: 'view-links', action: 'view-links' })}>
-                    View links
-                  </Button>
-                </Grid>
-              </div>
-            </div>
-
-            <div>
-              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                Vault Statistics
-              </Text>
-              <Text size="sm" color="mid" style={{ marginBottom: '16px' }}>
-                ✦ Here's an overview of your vault
-              </Text>
-              <Divider space="md" />
-              <Grid cols="2" gap="lg" style={{ marginTop: '16px' }}>
-                <Card>
-                  <Stack gap="xs">
-                    <Text size="xl" color="bright">1,247</Text>
-                    <Text size="sm" color="dim">Total notes</Text>
-                  </Stack>
-                </Card>
-                <Card>
-                  <Stack gap="xs">
-                    <Text size="xl" color="bright">34</Text>
-                    <Text size="sm" color="dim">Tags</Text>
-                  </Stack>
-                </Card>
-                <Card>
-                  <Stack gap="xs">
-                    <Text size="xl" color="bright">23</Text>
-                    <Text size="sm" color="dim">Orphaned</Text>
-                  </Stack>
-                </Card>
-                <Card>
-                  <Stack gap="xs">
-                    <Text size="xl" color="bright">5</Text>
-                    <Text size="sm" color="dim">Modified today</Text>
-                  </Stack>
-                </Card>
-              </Grid>
-            </div>
-
-          </div>
-        )}
-
-        {activeTab === 'components' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            --spacing-xs: 4px;
+            --spacing-sm: 6px;
+            --spacing-md: 8px;
+            --spacing-lg: 12px;
+            --spacing-xl: 16px;
+            --spacing-2xl: 24px;
+            --spacing-3xl: 32px;
             
-            <div>
-              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                Badges
-              </Text>
-              
-              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                Grammar:
-              </Text>
-              <pre style={{
-                background: tokens.colors.bgSurface,
-                border: `1px solid ${tokens.colors.border}`,
-                borderRadius: tokens.radius.md,
-                padding: tokens.spacing.lg,
-                fontSize: tokens.fontSize.xs,
-                color: tokens.colors.textMid,
-                overflow: 'auto',
-                marginBottom: '16px',
-                fontFamily: 'monospace',
-                whiteSpace: 'pre-wrap'
-              }}>{`[stack:direction-horizontal,gap-sm]
-  [badge:variant-default] Default
-  [badge:variant-accent] Accent
-  [badge:variant-success] Success
-  [badge:variant-error] Error
-[/stack]`}</pre>
-              
-              <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-                Rendered:
-              </Text>
-              <Stack direction="horizontal" gap="sm">
-                <Badge variant="default">Default</Badge>
-                <Badge variant="accent">Accent</Badge>
-                <Badge variant="success">Success</Badge>
-                <Badge variant="error">Error</Badge>
-              </Stack>
-            </div>
+            --font-xs: 12px;
+            --font-sm: 13px;
+            --font-base: 14px;
+            --font-lg: 16px;
+            --font-xl: 18px;
+            
+            --radius-sm: 3px;
+            --radius-md: 4px;
+            
+            --transition: 150ms ease;
+        }
 
-            <div>
-              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                Cards with Actions
-              </Text>
-              <Card>
-                <Stack gap="sm">
-                  <Text size="sm" color="bright">Project Overview</Text>
-                  <Text size="sm" color="dim">12 files • Last updated today</Text>
-                </Stack>
-              </Card>
-              <Grid cols="auto" gap="sm" style={{ marginTop: '8px' }}>
-                <Button icon="external-link" onClick={() => handleAction({ type: 'open', action: 'open' })}>
-                  Open
-                </Button>
-                <Button icon="edit" onClick={() => handleAction({ type: 'edit', action: 'edit' })}>
-                  Edit
-                </Button>
-              </Grid>
-            </div>
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
 
-            <div>
-              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                Status Messages
-              </Text>
-              <Stack gap="sm">
-                <Status type="success">File created successfully</Status>
-                <Status type="error">Failed to delete file: Permission denied</Status>
-                <Status type="pending">Waiting for approval...</Status>
-                <Status type="info">Found 0 files matching criteria</Status>
-              </Stack>
-            </div>
+        /* Text component */
+        .text {
+            line-height: 1.5;
+        }
 
-            <div>
-              <Text size="lg" color="bright" style={{ marginBottom: '12px' }}>
-                Links
-              </Text>
-              <Stack gap="sm">
-                <Link icon="external-link" onClick={() => handleAction({ type: 'external' })}>
-                  Open in new window
-                </Link>
-                <Link icon="folder" onClick={() => handleAction({ type: 'folder' })}>
-                  Browse folder
-                </Link>
-                <Link icon="search" onClick={() => handleAction({ type: 'search' })}>
-                  Search files
-                </Link>
-              </Stack>
-            </div>
+        .text-xs { font-size: var(--font-xs); }
+        .text-sm { font-size: var(--font-sm); }
+        .text-base { font-size: var(--font-base); }
+        .text-lg { font-size: var(--font-lg); }
+        .text-xl { font-size: var(--font-xl); }
 
-          </div>
-        )}
+        .text-bright { color: var(--text-bright); }
+        .text-mid { color: var(--text-mid); }
+        .text-dim { color: var(--text-dim); }
+        .text-muted { color: var(--text-muted); }
 
-        {activeTab === 'editor' && (
-          <>
-            <Text size="sm" color="dim" style={{ marginBottom: '8px' }}>
-              Test your own grammar patterns:
-            </Text>
-            <Text size="sm" color="dim" style={{ marginBottom: '16px' }}>
-              Note: Editor is for reference only. Use the rendered React examples in Semantic/Components tabs.
-            </Text>
-            <textarea
-              placeholder="Paste grammar syntax here to see the structure..."
-              style={{
-                width: '100%',
-                minHeight: '300px',
-                background: tokens.colors.bgSurface,
-                border: `1px solid ${tokens.colors.border}`,
-                borderRadius: tokens.radius.md,
-                padding: tokens.spacing.lg,
-                color: tokens.colors.textMid,
-                fontSize: tokens.fontSize.sm,
-                fontFamily: 'monospace',
-                resize: 'vertical',
-              }}
-              defaultValue={`[text:size-sm,color-mid] ✦ Example grammar structure
-[divider:space-md]
-[stack:gap-sm]
-  [file-list-item:path-Projects/Website.md,link-true,icon-file-text]
-  [file-list-item:path-Projects/Mobile-App.md,link-true,icon-file-text]
-[/stack]`}
-            />
-          </>
-        )}
-      </div>
-      <style>{`
+        .text-medium { font-weight: 500; }
+        .text-mono { font-family: monospace; }
+
+        /* Grid component */
+        .grid {
+            display: grid;
+            transition: all var(--transition);
+        }
+
+        .grid-1 { grid-template-columns: 1fr; }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-auto { grid-auto-flow: column; grid-template-columns: auto; }
+
+        .gap-xs { gap: var(--spacing-xs); }
+        .gap-sm { gap: var(--spacing-sm); }
+        .gap-md { gap: var(--spacing-md); }
+        .gap-lg { gap: var(--spacing-lg); }
+        .gap-xl { gap: var(--spacing-xl); }
+
+        .align-start { align-items: start; }
+        .align-center { align-items: center; }
+        .align-end { align-items: end; }
+
+        .justify-start { justify-content: start; }
+        .justify-center { justify-content: center; }
+        .justify-end { justify-content: end; }
+
+        .grid-border {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        .grid-bg {
+            background: var(--bg-surface);
+        }
+
+        .padding-xs { padding: var(--spacing-xs); }
+        .padding-sm { padding: var(--spacing-sm); }
+        .padding-md { padding: var(--spacing-md); }
+        .padding-lg { padding: var(--spacing-lg); }
+        .padding-xl { padding: var(--spacing-xl); }
+
+        .grid-hover:hover {
+            background: var(--bg-hover);
+            cursor: pointer;
+        }
+
+        /* Icon component */
+        .icon {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .icon-primary { color: var(--icon-primary); }
+        .icon-dim { color: var(--icon-dim); }
+        .icon-bright { color: var(--icon-bright); }
+
+        /* Button component */
+        .btn {
+            background: none;
+            border: none;
+            font-size: var(--font-sm);
+            cursor: pointer;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transition: all var(--transition);
+            color: var(--text-dim);
+        }
+
+        .btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-mid);
+        }
+
+        .btn-primary {
+            color: var(--text-mid);
+        }
+
+        .btn-primary:hover {
+            color: var(--text-bright);
+        }
+
+        /* Divider component */
+        .divider-h {
+            height: 1px;
+            width: 100%;
+            background: var(--border);
+            grid-column: 1 / -1;
+        }
+
+        .divider-v {
+            width: 1px;
+            height: 100%;
+            background: var(--border);
+        }
+
+        .divider-space-xs { margin: var(--spacing-xs) 0; }
+        .divider-space-sm { margin: var(--spacing-sm) 0; }
+        .divider-space-md { margin: var(--spacing-md) 0; }
+        .divider-space-lg { margin: var(--spacing-lg) 0; }
+        .divider-space-xl { margin: var(--spacing-xl) 0; }
+
+        /* ListItem component */
+        .list-item {
+            display: grid;
+            align-items: start;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) 0;
+            transition: all var(--transition);
+        }
+
+        .list-item-with-icon {
+            grid-template-columns: auto 1fr;
+        }
+
+        .list-item-hover:hover {
+            background: var(--bg-hover);
+            padding-left: var(--spacing-md);
+            padding-right: var(--spacing-md);
+            margin-left: calc(-1 * var(--spacing-md));
+            margin-right: calc(-1 * var(--spacing-md));
+            cursor: pointer;
+        }
+
+        /* Status component */
+        .status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: var(--radius-sm);
+        }
+
+        .status-success {
+            background: #3a4a3a;
+        }
+
+        .status-success .icon {
+            color: #5a7a5a;
+        }
+
+        .status-error {
+            background: #4a3a3a;
+        }
+
+        .status-error .icon {
+            color: #7a5a5a;
+        }
+
+        .status-pending {
+            background: #4a4a3a;
+        }
+
+        .status-pending .icon {
+            color: #7a7a5a;
+        }
+
+        .status-info {
+            background: #3a3a4a;
+        }
+
+        .status-info .icon {
+            color: #5a5a7a;
+        }
+
+        /* Spinner component */
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 1px solid #222;
+            border-top-color: var(--icon-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
         @keyframes spin {
-          to { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
-      `}</style>
+
+        /* Demo styles */
+        .header {
+            margin-bottom: 24px;
+        }
+
+        .tabs {
+            margin-bottom: 24px;
+        }
+
+        .editor-section {
+            margin-bottom: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            color: var(--text-mid);
+            font-size: var(--font-sm);
+            font-family: monospace;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+
+        .example {
+            margin-bottom: 32px;
+        }
+
+        .example-header {
+            margin-bottom: 12px;
+        }
+
+        .example-grammar {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            font-size: var(--font-xs);
+            color: var(--text-mid);
+            overflow: auto;
+            margin-bottom: 16px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .rendered-section {
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="text text-xl text-bright" style="margin-bottom: 8px;">
+                Grammar UI System
+            </div>
+            <div class="text text-sm text-dim">
+                Component library for Obsidian agent responses
+            </div>
+        </div>
+
+        <div class="tabs" style="display: flex; gap: 8px; margin-bottom: 24px;">
+            <button class="btn btn-primary" id="editorTab">Editor</button>
+            <button class="btn" id="examplesTab">Examples</button>
+        </div>
+
+        <div id="editorView">
+            <div class="editor-section">
+                <div class="text text-sm text-dim" style="margin-bottom: 8px;">Grammar:</div>
+                <textarea id="grammarInput">[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file-text,size-14,color-dim]
+    [text:size-base,color-bright] /Projects/Website.md
+  [/grid]
+[/grid]</textarea>
+            </div>
+
+            <div class="text text-sm text-dim" style="margin-bottom: 16px;">Rendered:</div>
+            <div id="renderOutput"></div>
+        </div>
+
+        <div id="examplesView" style="display: none;"></div>
     </div>
-  );
-}
+
+    <script>
+        // Lucide icons as SVG strings
+        const icons = {
+            'file-text': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
+            'file': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+            'tag': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>',
+            'link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>',
+            'clock': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+            'external-link': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+            'move': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>',
+            'hash': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>',
+            'alert-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+            'check-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            'x-circle': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+            'search': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+            'copy': '<svg xmlns="http://www.w3.org/2000/svg" width="SIZE" height="SIZE" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'
+        };
+
+        // Grammar Parser
+        function parseGrammar(grammar) {
+            const normalized = grammar
+                .replace(/\]\s*\[/g, ']\n[')
+                .trim();
+                
+            const lines = normalized.split('\n');
+            const elements = [];
+            const stack = [];
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                
+                if (trimmed.startsWith('[/')) {
+                    if (stack.length > 0) {
+                        const completed = stack.pop();
+                        if (stack.length === 0) {
+                            elements.push(completed);
+                        } else {
+                            stack[stack.length - 1].children.push(completed);
+                        }
+                    }
+                    continue;
+                }
+                
+                const tagMatch = trimmed.match(/^\[(\w+)(?::([^\]]+))?\]\s*(.*)/);
+                if (tagMatch) {
+                    const [, type, propsStr, contentAfterTag] = tagMatch;
+                    const props = {};
+                    
+                    if (propsStr) {
+                        propsStr.split(',').forEach(prop => {
+                            const parts = prop.trim().split('-');
+                            const key = parts[0];
+                            const val = parts.slice(1).join('-') || true;
+                            props[key] = val;
+                        });
+                    }
+                    
+                    const element = { type, props, children: [], content: contentAfterTag.trim() || '' };
+                    
+                    const containerTypes = ['grid', 'container'];
+                    if (!contentAfterTag && containerTypes.includes(type)) {
+                        stack.push(element);
+                    } else if (stack.length > 0) {
+                        stack[stack.length - 1].children.push(element);
+                    } else {
+                        elements.push(element);
+                    }
+                }
+            }
+            
+            while (stack.length > 0) {
+                const completed = stack.pop();
+                if (stack.length === 0) {
+                    elements.push(completed);
+                } else {
+                    stack[stack.length - 1].children.push(completed);
+                }
+            }
+            
+            return elements;
+        }
+
+        // Component creators
+        function createText(props, content) {
+            const el = document.createElement('div');
+            el.className = 'text';
+            
+            const size = props.size || 'base';
+            const color = props.color || 'mid';
+            const weight = props.weight;
+            const mono = props.mono;
+            
+            el.classList.add(`text-${size}`);
+            el.classList.add(`text-${color}`);
+            if (weight === 'medium') el.classList.add('text-medium');
+            if (mono) el.classList.add('text-mono');
+            
+            el.textContent = content;
+            return el;
+        }
+
+        function createIcon(props) {
+            const name = props.name;
+            const size = props.size || 14;
+            const color = props.color || 'primary';
+            
+            if (!name || !icons[name]) {
+                console.warn(`Icon "${name}" not found`);
+                return document.createElement('span');
+            }
+            
+            const el = document.createElement('span');
+            el.className = `icon icon-${color}`;
+            el.innerHTML = icons[name].replace(/SIZE/g, size);
+            
+            return el;
+        }
+
+        function createGrid(props, children) {
+            const el = document.createElement('div');
+            el.className = 'grid';
+            
+            const cols = props.cols || '1';
+            const gap = props.gap || 'md';
+            const align = props.align || 'center';
+            const justify = props.justify || 'start';
+            const border = props.border === 'true';
+            const background = props.background === 'true';
+            const padding = props.padding;
+            const hover = props.hover === 'true';
+            const min = props.min;
+            
+            if (cols === 'auto') {
+                el.classList.add('grid-auto');
+            } else if (cols === 'auto-fit' && min) {
+                el.style.gridTemplateColumns = `repeat(auto-fit, minmax(${min}, 1fr))`;
+            } else {
+                el.classList.add(`grid-${cols}`);
+            }
+            
+            el.classList.add(`gap-${gap}`);
+            el.classList.add(`align-${align}`);
+            el.classList.add(`justify-${justify}`);
+            
+            if (border) el.classList.add('grid-border');
+            if (background) el.classList.add('grid-bg');
+            if (padding) el.classList.add(`padding-${padding}`);
+            if (hover) el.classList.add('grid-hover');
+            
+            children.forEach(child => el.appendChild(child));
+            
+            return el;
+        }
+
+        function createButton(props, content, onAction) {
+            const el = document.createElement('button');
+            el.className = 'btn';
+            
+            const icon = props.icon;
+            const primary = props.primary === 'true';
+            const action = props.action;
+            
+            if (primary) el.classList.add('btn-primary');
+            
+            if (icon) {
+                const iconEl = createIcon({ name: icon, size: 12 });
+                el.appendChild(iconEl);
+            }
+            
+            const textEl = document.createElement('span');
+            textEl.textContent = content;
+            el.appendChild(textEl);
+            
+            if (action && onAction) {
+                el.onclick = () => onAction(action, props);
+            }
+            
+            return el;
+        }
+
+        function createDivider(props) {
+            const el = document.createElement('div');
+            const direction = props.direction || 'h';
+            const space = props.space || 'lg';
+            
+            el.className = direction === 'h' ? 'divider-h' : 'divider-v';
+            el.classList.add(`divider-space-${space}`);
+            
+            return el;
+        }
+
+        function createListItem(props, children) {
+            const el = document.createElement('div');
+            el.className = 'list-item';
+            
+            const icon = props.icon;
+            const hover = props.hover !== 'false';
+            
+            if (icon) {
+                el.classList.add('list-item-with-icon');
+                const iconEl = createIcon({ name: icon, size: 12, color: 'dim' });
+                el.appendChild(iconEl);
+            }
+            
+            if (hover) el.classList.add('list-item-hover');
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.style.minWidth = '0';
+            children.forEach(child => contentDiv.appendChild(child));
+            el.appendChild(contentDiv);
+            
+            return el;
+        }
+
+        function createStatus(props, content) {
+            const type = props.type || 'info';
+            const el = document.createElement('div');
+            el.className = `status status-${type}`;
+            
+            const iconNames = {
+                success: 'check-circle',
+                error: 'x-circle',
+                pending: 'clock',
+                info: 'alert-circle'
+            };
+            
+            const iconEl = createIcon({ name: iconNames[type], size: 14 });
+            el.appendChild(iconEl);
+            
+            const textEl = createText({ size: 'sm', color: 'mid' }, content);
+            el.appendChild(textEl);
+            
+            return el;
+        }
+
+        function createSpinner() {
+            const el = document.createElement('div');
+            el.className = 'spinner';
+            return el;
+        }
+
+        // Grammar Renderer
+        function renderGrammar(grammar, onAction) {
+            const elements = parseGrammar(grammar);
+            const container = document.createElement('div');
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = 'var(--spacing-md)';
+            
+            elements.forEach(element => {
+                const rendered = renderElement(element, onAction);
+                if (rendered) container.appendChild(rendered);
+            });
+            
+            return container;
+        }
+
+        function renderElement(element, onAction) {
+            const { type, props, content, children } = element;
+            
+            switch (type) {
+                case 'text':
+                    return createText(props, content);
+                
+                case 'icon':
+                    return createIcon(props);
+                
+                case 'grid':
+                case 'container':
+                    const childElements = [];
+                    if (content) {
+                        childElements.push(createText({}, content));
+                    }
+                    children.forEach(child => {
+                        const rendered = renderElement(child, onAction);
+                        if (rendered) childElements.push(rendered);
+                    });
+                    return createGrid(props, childElements);
+                
+                case 'button':
+                    return createButton(props, content, onAction);
+                
+                case 'divider':
+                    return createDivider(props);
+                
+                case 'listitem':
+                    const listChildren = [];
+                    if (content) {
+                        listChildren.push(createText({ size: 'sm', color: 'mid' }, content));
+                    }
+                    children.forEach(child => {
+                        const rendered = renderElement(child, onAction);
+                        if (rendered) listChildren.push(rendered);
+                    });
+                    return createListItem(props, listChildren);
+                
+                case 'status':
+                    return createStatus(props, content);
+                
+                case 'spinner':
+                    return createSpinner();
+                
+                default:
+                    return null;
+            }
+        }
+
+        // Examples
+        const examples = {
+            fileList: {
+                name: 'File List (Card)',
+                grammar: `[text:size-base,color-mid] ✦ Found 12 files in /Projects
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Website.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Mobile App.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Brand Guidelines.md
+  [/grid]
+  [divider:space-md]
+  [text:size-xs,color-muted] + 9 more files
+[/grid]`
+            },
+            singleFile: {
+                name: 'Single File with Metadata (Card)',
+                grammar: `[text:size-base,color-mid] ✦ Here's what I found:
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file-text,size-14,color-dim]
+    [text:size-base,color-bright] /Projects/Website Redesign.md
+  [/grid]
+  [divider:space-md]
+  [grid:cols-1,gap-sm]
+    [grid:cols-auto,gap-sm]
+      [icon:name-tag,size-12,color-dim]
+      [text:size-xs,color-dim] #project #design #2024
+    [/grid]
+    [grid:cols-auto,gap-sm]
+      [icon:name-link,size-12,color-dim]
+      [text:size-xs,color-dim] 3 outgoing, 5 backlinks
+    [/grid]
+    [grid:cols-auto,gap-sm]
+      [icon:name-clock,size-12,color-dim]
+      [text:size-xs,color-dim] Modified: 2024-03-15
+    [/grid]
+  [/grid]
+[/grid]`
+            },
+            searchResults: {
+                name: 'Search Results (Individual Cards)',
+                grammar: `[text:size-base,color-mid] ✦ Found 47 matches in 23 files
+[grid:cols-1,gap-sm]
+  [grid:cols-auto,gap-sm,align-start,border-true,background-true,padding-md]
+    [icon:name-file-text,size-12,color-dim]
+    [grid:cols-1,gap-xs]
+      [text:size-sm,color-mid] /Journal/2024-03-15.md
+      [text:size-xs,color-dim] Emma had her first birthday party today...
+    [/grid]
+  [/grid]
+  [grid:cols-auto,gap-sm,align-start,border-true,background-true,padding-md]
+    [icon:name-file-text,size-12,color-dim]
+    [grid:cols-1,gap-xs]
+      [text:size-sm,color-mid] /Projects/Website.md
+      [text:size-xs,color-dim] Meeting with Emma to discuss design direction...
+    [/grid]
+  [/grid]
+  [grid:cols-auto,gap-sm,align-start,border-true,background-true,padding-md]
+    [icon:name-file-text,size-12,color-dim]
+    [grid:cols-1,gap-xs]
+      [text:size-sm,color-mid] /Ideas/Product Features.md
+      [text:size-xs,color-dim] Emma suggested adding dark mode support...
+    [/grid]
+  [/grid]
+[/grid]
+[text:size-xs,color-muted] + 20 more files
+`
+            },
+            withActions: {
+                name: 'With Action Buttons',
+                grammar: `[text:size-base,color-mid] ✦ Found 12 files in /Projects
+[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Website.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Mobile App.md
+  [/grid]
+  [grid:cols-auto,gap-sm]
+    [icon:name-file,size-12,color-dim]
+    [text:size-sm,color-mid] /Projects/Brand Guidelines.md
+  [/grid]
+[/grid]
+[grid:cols-auto,gap-sm]
+  [button:icon-move] Move all
+  [button:icon-tag] Tag all
+[/grid]`
+            },
+            tagCollection: {
+                name: 'Related Tags',
+                grammar: `[text:size-base,color-mid] ✦ Found 4 related tags
+[grid:cols-auto-fit,min-80px,gap-sm]
+  [grid:cols-auto,gap-xs,border-true,background-true,padding-sm]
+    [icon:name-hash,size-12,color-dim]
+    [text:size-xs,color-mid] project
+    [text:size-xs,color-muted] (34)
+  [/grid]
+  [grid:cols-auto,gap-xs,border-true,background-true,padding-sm]
+    [icon:name-hash,size-12,color-dim]
+    [text:size-xs,color-mid] design
+    [text:size-xs,color-muted] (21)
+  [/grid]
+  [grid:cols-auto,gap-xs,border-true,background-true,padding-sm]
+    [icon:name-hash,size-12,color-dim]
+    [text:size-xs,color-mid] website
+    [text:size-xs,color-muted] (12)
+  [/grid]
+  [grid:cols-auto,gap-xs,border-true,background-true,padding-sm]
+    [icon:name-hash,size-12,color-dim]
+    [text:size-xs,color-mid] 2024
+    [text:size-xs,color-muted] (8)
+  [/grid]
+[/grid]`
+            },
+            approval: {
+                name: 'Approval Request (Card)',
+                grammar: `[text:size-base,color-mid] ✦ I need your approval to proceed
+[grid:cols-1,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm]
+    [icon:name-alert-circle,size-14]
+    [text:size-base,color-bright] Modify 3 files
+  [/grid]
+  [divider:space-md]
+  [text:size-xs,color-dim] This will modify the frontmatter of 3 files in /Projects
+[/grid]
+[grid:cols-auto,gap-sm]
+  [button:icon-check-circle,action-approve] Approve
+  [button:icon-x-circle,action-deny] Deny
+[/grid]`
+            },
+            stats: {
+                name: 'Statistics Grid (Card)',
+                grammar: `[text:size-base,color-mid] ✦ Here's an overview of your vault
+[grid:cols-2,gap-lg,border-true,background-true,padding-lg]
+  [grid:cols-1,gap-xs]
+    [text:size-xl,color-bright] 1,247
+    [text:size-xs,color-dim] Total notes
+  [/grid]
+  [grid:cols-1,gap-xs]
+    [text:size-xl,color-bright] 34
+    [text:size-xs,color-dim] Tags
+  [/grid]
+  [grid:cols-1,gap-xs]
+    [text:size-xl,color-bright] 23
+    [text:size-xs,color-dim] Orphaned
+  [/grid]
+  [grid:cols-1,gap-xs]
+    [text:size-xl,color-bright] 5
+    [text:size-xs,color-dim] Modified today
+  [/grid]
+[/grid]`
+            },
+            loading: {
+                name: 'Loading State (Card)',
+                grammar: `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [spinner]
+  [text:size-sm,color-dim] Searching 1,247 notes...
+[/grid]`
+            },
+            statusMessages: {
+                name: 'Status Messages',
+                grammar: `[status:type-success] File created successfully
+[status:type-error] Failed to delete file: Permission denied
+[status:type-pending] Waiting for approval to modify 3 files...
+[status:type-info] Found 0 files matching criteria`
+            }
+        };
+
+        // App state
+        let currentTab = 'editor';
+
+        // UI handlers
+        const editorTab = document.getElementById('editorTab');
+        const examplesTab = document.getElementById('examplesTab');
+        const editorView = document.getElementById('editorView');
+        const examplesView = document.getElementById('examplesView');
+        const grammarInput = document.getElementById('grammarInput');
+        const renderOutput = document.getElementById('renderOutput');
+
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            if (tab === 'editor') {
+                editorTab.classList.add('btn-primary');
+                examplesTab.classList.remove('btn-primary');
+                editorView.style.display = 'block';
+                examplesView.style.display = 'none';
+            } else {
+                editorTab.classList.remove('btn-primary');
+                examplesTab.classList.add('btn-primary');
+                editorView.style.display = 'none';
+                examplesView.style.display = 'block';
+            }
+        }
+
+        function updateRender() {
+            const grammar = grammarInput.value;
+            renderOutput.innerHTML = '';
+            const rendered = renderGrammar(grammar, (action, props) => {
+                console.log('Action:', action, props);
+                alert(`Action triggered: ${action}`);
+            });
+            renderOutput.appendChild(rendered);
+        }
+
+        function renderExamples() {
+            examplesView.innerHTML = '';
+            
+            Object.entries(examples).forEach(([key, { name, grammar }]) => {
+                const exampleDiv = document.createElement('div');
+                exampleDiv.className = 'example';
+                
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'example-header text text-lg text-bright';
+                headerDiv.textContent = name;
+                exampleDiv.appendChild(headerDiv);
+                
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'text text-sm text-dim';
+                labelDiv.style.marginBottom = '8px';
+                labelDiv.textContent = 'Grammar:';
+                exampleDiv.appendChild(labelDiv);
+                
+                const grammarDiv = document.createElement('pre');
+                grammarDiv.className = 'example-grammar';
+                grammarDiv.textContent = grammar;
+                exampleDiv.appendChild(grammarDiv);
+                
+                const renderedLabelDiv = document.createElement('div');
+                renderedLabelDiv.className = 'text text-sm text-dim';
+                renderedLabelDiv.style.marginBottom = '8px';
+                renderedLabelDiv.textContent = 'Rendered:';
+                exampleDiv.appendChild(renderedLabelDiv);
+                
+                const renderedDiv = document.createElement('div');
+                renderedDiv.className = 'rendered-section';
+                const rendered = renderGrammar(grammar, (action, props) => {
+                    console.log('Action:', action, props);
+                    alert(`Action triggered: ${action}`);
+                });
+                renderedDiv.appendChild(rendered);
+                exampleDiv.appendChild(renderedDiv);
+                
+                const copyBtn = createButton({ icon: 'copy' }, 'Copy Grammar');
+                copyBtn.style.marginTop = '8px';
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(grammar);
+                    alert('Grammar copied to clipboard!');
+                };
+                exampleDiv.appendChild(copyBtn);
+                
+                examplesView.appendChild(exampleDiv);
+            });
+        }
+
+        // Event listeners
+        editorTab.addEventListener('click', () => switchTab('editor'));
+        examplesTab.addEventListener('click', () => {
+            switchTab('examples');
+            renderExamples();
+        });
+
+        grammarInput.addEventListener('input', updateRender);
+
+        // Initial render
+        updateRender();
+    </script>
+</body>
+</html>
