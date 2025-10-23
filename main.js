@@ -2619,7 +2619,11 @@ class ChatView extends ItemView {
     const statusContainer = messageItem.createDiv({ cls: 'system-message' });
 
     // Initial status
-    let statusEl = renderGrammar('[status:pending|Starting indexing...]', null, this.app);
+    const initialGrammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [spinner]
+  [text:size-sm,color-dim] Starting indexing...
+[/grid]`;
+    let statusEl = renderGrammar(initialGrammar, null, this.app);
     statusContainer.appendChild(statusEl);
     this.updateIndexStatus();
 
@@ -2638,10 +2642,13 @@ class ChatView extends ItemView {
 
           // Update status with Grammar UI
           statusContainer.empty();
-          const grammar = `[grid:1|gap-sm
-[status:pending|Indexing: ${current}/${total} files (${percentage}%)]
-[text:xs|text-dim|Current: ${fileName}]
-]`;
+          const grammar = `[grid:cols-1,gap-sm,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-md]
+    [spinner]
+    [text:size-sm,color-dim] Indexing: ${current}/${total} files (${percentage}%)
+  [/grid]
+  [text:size-xs,color-dim] Current: ${fileName}
+[/grid]`;
           statusEl = renderGrammar(grammar, null, this.app);
           statusContainer.appendChild(statusEl);
 
@@ -2655,7 +2662,10 @@ class ChatView extends ItemView {
 
       // Final success status
       statusContainer.empty();
-      const successGrammar = `[status:success|Indexing complete! ${stats.totalChunks} chunks from ${stats.totalFiles} files]`;
+      const successGrammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [icon:check]
+  [text:size-sm,color-dim] Indexing complete! ${stats.totalChunks} chunks from ${stats.totalFiles} files
+[/grid]`;
       statusEl = renderGrammar(successGrammar, null, this.app);
       statusContainer.appendChild(statusEl);
 
@@ -2665,7 +2675,10 @@ class ChatView extends ItemView {
     } catch (error) {
       // Error status
       statusContainer.empty();
-      const errorGrammar = `[status:error|Indexing failed: ${error.message}]`;
+      const errorGrammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [icon:alert-circle]
+  [text:size-sm,color-dim] Indexing failed: ${error.message}
+[/grid]`;
       statusEl = renderGrammar(errorGrammar, null, this.app);
       statusContainer.appendChild(statusEl);
 
@@ -2689,7 +2702,11 @@ class ChatView extends ItemView {
     const thinkingEl = thinkingItem.createDiv({ cls: 'system-message' });
 
     // Render initial thinking status
-    const thinkingStatus = renderGrammar('[status:pending|Thinking...]', null, this.app);
+    const thinkingGrammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [spinner]
+  [text:size-sm,color-dim] Thinking...
+[/grid]`;
+    const thinkingStatus = renderGrammar(thinkingGrammar, null, this.app);
     thinkingEl.appendChild(thinkingStatus);
 
     // Get selected reasoning effort (default to 'low')
@@ -2702,18 +2719,26 @@ class ChatView extends ItemView {
         onUpdate: (msg) => {
           // Update thinking status with current operation
           thinkingEl.empty();
-          const updatedStatus = renderGrammar(`[status:pending|${msg}]`, null, this.app);
+          const updatedGrammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [spinner]
+  [text:size-sm,color-dim] ${msg}
+[/grid]`;
+          const updatedStatus = renderGrammar(updatedGrammar, null, this.app);
           thinkingEl.appendChild(updatedStatus);
           this.scrollToBottom();
         },
         
         onToolCall: (name, args) => {
           if (this.debugMode) {
-            // Debug ON: Show full technical details with status component
+            // Debug ON: Show full technical details
             const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
             const systemMsg = messageItem.createDiv({ cls: 'system-message' });
             const argsPreview = JSON.stringify(args).slice(0, 100);
-            const statusEl = renderGrammar(`[status:info|${name}(${argsPreview}...)]`, null, this.app);
+            const grammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [icon:wrench]
+  [text:size-sm,color-dim] ${name}(${argsPreview}...)
+[/grid]`;
+            const statusEl = renderGrammar(grammar, null, this.app);
             systemMsg.appendChild(statusEl);
             this.scrollToBottom();
           } else {
@@ -2722,7 +2747,11 @@ class ChatView extends ItemView {
             if (summary) {  // Only show if not empty
               const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
               const systemMsg = messageItem.createDiv({ cls: 'system-message' });
-              const statusEl = renderGrammar(`[status:pending|${summary}]`, null, this.app);
+              const grammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [spinner]
+  [text:size-sm,color-dim] ${summary}
+[/grid]`;
+              const statusEl = renderGrammar(grammar, null, this.app);
               systemMsg.appendChild(statusEl);
               this.scrollToBottom();
             }
@@ -2735,7 +2764,11 @@ class ChatView extends ItemView {
             const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
             const systemMsg = messageItem.createDiv({ cls: 'system-message' });
             const preview = JSON.stringify(result).slice(0, 150);
-            const statusEl = renderGrammar(`[status:success|${name} completed]`, null, this.app);
+            const grammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [icon:check]
+  [text:size-sm,color-dim] ${name} completed
+[/grid]`;
+            const statusEl = renderGrammar(grammar, null, this.app);
             systemMsg.appendChild(statusEl);
             this.scrollToBottom();
           }
@@ -2776,30 +2809,36 @@ class ChatView extends ItemView {
       const approvalEl = messageItem.createDiv({ cls: 'system-message' });
 
       // Create Grammar UI for approval request
-      const grammar = `[grid:2|gap-md|grid-border|padding-lg
-[grid:auto|gap-sm|align-center
-[icon:alert-triangle|icon-dim]
-[text:base|text-medium|Approval Required]
-]
-[text:sm|text-dim|${details}]
-[grid:2|gap-sm
-[button:primary|approve|Approve]
-[button:primary|deny|Deny]
-]
-]`;
+      const grammar = `[grid:cols-1,gap-md,border-true,background-true,padding-lg]
+  [grid:cols-auto,gap-sm,align-center]
+    [icon:alert-triangle]
+    [text:size-base,weight-medium] Approval Required
+  [/grid]
+  [text:size-sm,color-dim] ${details}
+  [grid:cols-2,gap-sm]
+    [button:primary,approve] Approve
+    [button:primary,deny] Deny
+  [/grid]
+[/grid]`;
 
       const approvalComponent = renderGrammar(grammar, (action, props) => {
         messageItem.remove();
         if (action === 'approve') {
           const statusMsg = this.chatEl.createDiv({ cls: 'message-item' });
           const statusEl = statusMsg.createDiv({ cls: 'system-message' });
-          const status = renderGrammar('[status:success|Operation approved]', null, this.app);
+          const status = renderGrammar(`[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [icon:check]
+  [text:size-sm,color-dim] Operation approved
+[/grid]`, null, this.app);
           statusEl.appendChild(status);
           resolve(true);
         } else if (action === 'deny') {
           const statusMsg = this.chatEl.createDiv({ cls: 'message-item' });
           const statusEl = statusMsg.createDiv({ cls: 'system-message' });
-          const status = renderGrammar('[status:error|Operation denied]', null, this.app);
+          const status = renderGrammar(`[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [icon:x]
+  [text:size-sm,color-dim] Operation denied
+[/grid]`, null, this.app);
           statusEl.appendChild(status);
           resolve(false);
         }
@@ -2872,9 +2911,13 @@ class ChatView extends ItemView {
       contentEl = messageItem.createDiv({ cls: 'system-message' });
       contentEl.textContent = text;
     } else if (role === 'error') {
-      // Error messages: use Grammar UI status component
+      // Error messages: use Grammar UI with error icon
       contentEl = messageItem.createDiv({ cls: 'system-message' });
-      const errorStatus = renderGrammar(`[status:error|${text}]`, null, this.app);
+      const errorGrammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
+  [icon:alert-circle]
+  [text:size-sm,color-dim] ${text}
+[/grid]`;
+      const errorStatus = renderGrammar(errorGrammar, null, this.app);
       contentEl.appendChild(errorStatus);
       return messageItem;
     } else {
