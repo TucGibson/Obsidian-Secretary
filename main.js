@@ -550,6 +550,104 @@ function renderElement(element, onAction, app) {
     }
 }
 
+// ============================================================================
+// GRAMMAR STREAM PARSER - Progressive Block Rendering
+// ============================================================================
+
+class GrammarStreamParser {
+  constructor() {
+    this.buffer = '';
+    this.completedBlocks = [];
+    this.renderedLength = 0;
+  }
+
+  /**
+   * Add new chunk of text to buffer and extract any complete blocks
+   * @param {string} chunk - New text chunk from stream
+   * @returns {Array<string>} Array of complete Grammar blocks ready to render
+   */
+  addChunk(chunk) {
+    this.buffer += chunk;
+    return this.extractCompleteBlocks();
+  }
+
+  /**
+   * Extract complete Grammar blocks from buffer
+   * A block is complete when it has matching opening/closing brackets
+   */
+  extractCompleteBlocks() {
+    const newBlocks = [];
+    let searchStart = this.renderedLength;
+
+    while (searchStart < this.buffer.length) {
+      // Find next opening bracket
+      const openIdx = this.buffer.indexOf('[', searchStart);
+      if (openIdx === -1) break;
+
+      // Try to find matching closing bracket
+      const closeIdx = this.findMatchingBracket(openIdx);
+
+      if (closeIdx !== -1) {
+        // Found complete block
+        const block = this.buffer.substring(openIdx, closeIdx + 1);
+        newBlocks.push(block);
+        searchStart = closeIdx + 1;
+        this.renderedLength = searchStart;
+      } else {
+        // No matching bracket yet - block incomplete
+        break;
+      }
+    }
+
+    return newBlocks;
+  }
+
+  /**
+   * Find matching closing bracket for opening bracket at given index
+   * Handles nested brackets correctly
+   * @param {number} openIdx - Index of opening bracket
+   * @returns {number} Index of matching closing bracket, or -1 if not found
+   */
+  findMatchingBracket(openIdx) {
+    let depth = 0;
+
+    for (let i = openIdx; i < this.buffer.length; i++) {
+      const char = this.buffer[i];
+
+      if (char === '[') {
+        depth++;
+      } else if (char === ']') {
+        depth--;
+        if (depth === 0) {
+          return i;
+        }
+      }
+    }
+
+    return -1; // No matching bracket found
+  }
+
+  /**
+   * Get any remaining text that hasn't been rendered yet
+   * Useful for plain text between Grammar blocks
+   */
+  getRemainingText() {
+    if (this.renderedLength < this.buffer.length) {
+      return this.buffer.substring(this.renderedLength);
+    }
+    return '';
+  }
+
+  /**
+   * Reset parser state
+   */
+  reset() {
+    this.buffer = '';
+    this.completedBlocks = [];
+    this.renderedLength = 0;
+  }
+}
+
 ///// PART 0 END - GRAMMAR UI SYSTEM ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -2501,7 +2599,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v3.1.2 - Semantic Grammar UI\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.2.0 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -2885,7 +2983,79 @@ class ChatView extends ItemView {
       this.scrollToBottom();
     });
   }
-  
+
+  /**
+   * Render Grammar syntax progressively with animations
+   * Simulates streaming by breaking into character chunks and rendering complete blocks
+   */
+  async renderProgressiveGrammar(container, text) {
+    // Check if text has intro text before grammar
+    const grammarPattern = /\[(?:text|icon|grid|container|button|divider|listitem|status|spinner|file-result|search-result|file-list-item|tag-group|stat-card)[:|\]]/;
+    const grammarMatch = text.match(grammarPattern);
+
+    let introEl = null;
+
+    if (grammarMatch && grammarMatch.index > 0) {
+      // Has intro text - render it immediately
+      const introText = text.substring(0, grammarMatch.index).trim();
+      if (introText) {
+        introEl = container.createDiv({ cls: 'message-intro' });
+        introEl.textContent = introText;
+        introEl.style.marginBottom = '12px';
+      }
+      // Process only the grammar portion
+      text = text.substring(grammarMatch.index);
+    }
+
+    const parser = new GrammarStreamParser();
+    const CHARS_PER_CHUNK = 15; // Characters to add per interval
+    const CHUNK_DELAY = 20; // Milliseconds between chunks
+
+    let currentPos = 0;
+
+    const processNextChunk = () => {
+      if (currentPos >= text.length) {
+        return; // Done
+      }
+
+      // Add next chunk to parser
+      const nextPos = Math.min(currentPos + CHARS_PER_CHUNK, text.length);
+      const chunk = text.substring(currentPos, nextPos);
+      currentPos = nextPos;
+
+      const completeBlocks = parser.addChunk(chunk);
+
+      // Render each complete block with animation
+      for (const block of completeBlocks) {
+        try {
+          const blockEl = renderGrammar(block, (action, props) => {
+            console.log('Grammar action:', action, props);
+            new Notice(`Action: ${action}`);
+          }, this.app);
+
+          // Add animation class
+          blockEl.classList.add('grammar-block-appear');
+
+          // Append to container
+          container.appendChild(blockEl);
+
+          // Scroll to bottom to show new block
+          this.scrollToBottom();
+        } catch (error) {
+          console.error('[ChatView] Grammar rendering error:', error, block);
+        }
+      }
+
+      // Schedule next chunk
+      if (currentPos < text.length) {
+        setTimeout(processNextChunk, CHUNK_DELAY);
+      }
+    };
+
+    // Start processing
+    processNextChunk();
+  }
+
   addMessage(role, text) {
     // Create message wrapper with template classes
     const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
@@ -2898,47 +3068,12 @@ class ChatView extends ItemView {
       contentEl = messageItem.createDiv({ cls: 'user-message' });
       contentEl.textContent = text;
     } else if (role === 'assistant') {
-      // Agent responses: no bubble, grammar-rendered or plain text
+      // Agent responses: no bubble, progressive grammar rendering
       contentEl = messageItem.createDiv({ cls: 'agent-response' });
 
-      // Check if this is grammar syntax
+      // Use progressive rendering for Grammar syntax
       if (this.isGrammarSyntax(text)) {
-        try {
-          // Check if text has "✦" intro before grammar
-          const grammarPattern = /\[(?:text|icon|grid|container|button|divider|listitem|status|spinner)[:|\]]/;
-          const grammarMatch = text.match(grammarPattern);
-
-          if (grammarMatch && grammarMatch.index > 0) {
-            // Mixed content: "✦ intro" + grammar
-            const introText = text.substring(0, grammarMatch.index).trim();
-            const grammarText = text.substring(grammarMatch.index).trim();
-
-            // Render intro text
-            if (introText) {
-              const introEl = contentEl.createDiv({ cls: 'message-intro' });
-              introEl.textContent = introText;
-              introEl.style.marginBottom = '12px';
-            }
-
-            // Render grammar
-            const grammarEl = renderGrammar(grammarText, (action, props) => {
-              console.log('Grammar action:', action, props);
-              new Notice(`Action: ${action}`);
-            }, this.app);
-            contentEl.appendChild(grammarEl);
-          } else {
-            // Pure grammar: render as-is
-            const grammarEl = renderGrammar(text, (action, props) => {
-              console.log('Grammar action:', action, props);
-              new Notice(`Action: ${action}`);
-            }, this.app);
-            contentEl.appendChild(grammarEl);
-          }
-        } catch (error) {
-          console.error('[ChatView] Grammar rendering error:', error);
-          // Fallback to plain text if grammar rendering fails
-          contentEl.textContent = text.startsWith('✦') ? text : '✦ ' + text;
-        }
+        this.renderProgressiveGrammar(contentEl, text);
       } else {
         // Plain text: auto-prepend "✦" marker if not already there
         contentEl.textContent = text.startsWith('✦') ? text : '✦ ' + text;
