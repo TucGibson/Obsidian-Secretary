@@ -2614,7 +2614,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v3.2.3 - Semantic Grammar UI\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.2.4 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -3004,6 +3004,12 @@ class ChatView extends ItemView {
    * Plain text streams character-by-character, Grammar blocks appear when complete
    */
   async renderProgressiveGrammar(container, text) {
+    // Log raw output for debugging
+    console.log('[Progressive Render] Raw agent output:');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(text);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
     // Auto-prepend "✦" marker if not already there and not starting with Grammar
     if (!text.startsWith('✦') && !text.startsWith('[')) {
       text = '✦ ' + text;
@@ -3077,6 +3083,7 @@ class ChatView extends ItemView {
         if (bracketDepth === 0 && inGrammarBlock) {
           // Complete Grammar block found
           const grammarBlock = buffer;
+          console.log('[Progressive Render] Grammar block detected:', grammarBlock);
           buffer = '';
           inGrammarBlock = false;
           plainTextContainer = null; // Reset for next plain text section
@@ -3089,9 +3096,10 @@ class ChatView extends ItemView {
 
             blockEl.classList.add('grammar-block-appear');
             container.appendChild(blockEl);
+            console.log('[Progressive Render] Grammar block rendered successfully');
             this.scrollToBottom();
           } catch (error) {
-            console.error('[ChatView] Grammar rendering error:', error, grammarBlock);
+            console.error('[Progressive Render] Grammar rendering error:', error, grammarBlock);
             // Fallback: render as plain text
             const fallbackEl = container.createDiv();
             fallbackEl.textContent = grammarBlock;
