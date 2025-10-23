@@ -2451,7 +2451,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v3.0.2 - Semantic Grammar UI\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.0.3 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -2729,50 +2729,36 @@ class ChatView extends ItemView {
         },
         
         onToolCall: (name, args) => {
+          // Update the existing thinking block with current tool call
+          thinkingEl.empty();
+
           if (this.debugMode) {
             // Debug ON: Show full technical details
-            const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
-            const systemMsg = messageItem.createDiv({ cls: 'system-message' });
             const argsPreview = JSON.stringify(args).slice(0, 100);
             const grammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
   [icon:wrench]
   [text:size-sm,color-dim] ${name}(${argsPreview}...)
 [/grid]`;
             const statusEl = renderGrammar(grammar, null, this.app);
-            systemMsg.appendChild(statusEl);
-            this.scrollToBottom();
+            thinkingEl.appendChild(statusEl);
           } else {
             // Debug OFF: Show brief user-friendly summary
             const summary = this.getToolCallSummary(name, args);
             if (summary) {  // Only show if not empty
-              const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
-              const systemMsg = messageItem.createDiv({ cls: 'system-message' });
               const grammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
   [spinner]
   [text:size-sm,color-dim] ${summary}
 [/grid]`;
               const statusEl = renderGrammar(grammar, null, this.app);
-              systemMsg.appendChild(statusEl);
-              this.scrollToBottom();
+              thinkingEl.appendChild(statusEl);
             }
           }
+          this.scrollToBottom();
         },
 
         onToolResult: (name, result) => {
-          if (this.debugMode) {
-            // Debug ON: Show full result with success status
-            const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
-            const systemMsg = messageItem.createDiv({ cls: 'system-message' });
-            const preview = JSON.stringify(result).slice(0, 150);
-            const grammar = `[grid:cols-auto,gap-md,border-true,background-true,padding-lg]
-  [icon:check]
-  [text:size-sm,color-dim] ${name} completed
-[/grid]`;
-            const statusEl = renderGrammar(grammar, null, this.app);
-            systemMsg.appendChild(statusEl);
-            this.scrollToBottom();
-          }
-          // Debug OFF: Don't show tool results to keep UI clean
+          // Don't update UI for tool results - keep showing the tool call status
+          // The next tool call or final output will replace this
         },
         
         onApprovalNeeded: async (details) => {
