@@ -2614,7 +2614,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v3.2.2 - Semantic Grammar UI\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.2.3 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -3004,8 +3004,8 @@ class ChatView extends ItemView {
    * Plain text streams character-by-character, Grammar blocks appear when complete
    */
   async renderProgressiveGrammar(container, text) {
-    // Auto-prepend "✦" marker if not already there
-    if (!text.startsWith('✦')) {
+    // Auto-prepend "✦" marker if not already there and not starting with Grammar
+    if (!text.startsWith('✦') && !text.startsWith('[')) {
       text = '✦ ' + text;
     }
 
@@ -3017,14 +3017,21 @@ class ChatView extends ItemView {
     let buffer = ''; // Buffer for detecting Grammar blocks
     let inGrammarBlock = false;
     let bracketDepth = 0;
+    let isFirstContainer = true; // Track if this is the first container
 
     const processNextChunk = () => {
       if (currentPos >= text.length) {
         // Flush any remaining buffer as plain text
-        if (buffer.trim()) {
+        const trimmed = buffer.trim();
+        if (trimmed && trimmed !== '✦') {
           if (!plainTextContainer) {
-            plainTextContainer = container.createDiv({ cls: 'grammar-block-appear' });
+            plainTextContainer = container.createDiv();
             plainTextContainer.style.lineHeight = '1.5';
+            // Only animate the very first container
+            if (isFirstContainer) {
+              plainTextContainer.classList.add('grammar-block-appear');
+              isFirstContainer = false;
+            }
           }
           plainTextContainer.textContent += buffer;
           buffer = '';
@@ -3045,10 +3052,17 @@ class ChatView extends ItemView {
           // Flush any plain text before this
           if (buffer.length > 1) { // More than just the '['
             const plainText = buffer.substring(0, buffer.length - 1);
-            if (plainText) {
+            // Only create container if there's actual content (not just whitespace/stars)
+            const trimmed = plainText.trim();
+            if (trimmed && trimmed !== '✦') {
               if (!plainTextContainer) {
-                plainTextContainer = container.createDiv({ cls: 'grammar-block-appear' });
+                plainTextContainer = container.createDiv();
                 plainTextContainer.style.lineHeight = '1.5';
+                // Only animate the very first container
+                if (isFirstContainer) {
+                  plainTextContainer.classList.add('grammar-block-appear');
+                  isFirstContainer = false;
+                }
               }
               plainTextContainer.textContent += plainText;
               this.scrollToBottom();
@@ -3079,7 +3093,7 @@ class ChatView extends ItemView {
           } catch (error) {
             console.error('[ChatView] Grammar rendering error:', error, grammarBlock);
             // Fallback: render as plain text
-            const fallbackEl = container.createDiv({ cls: 'grammar-block-appear' });
+            const fallbackEl = container.createDiv();
             fallbackEl.textContent = grammarBlock;
             fallbackEl.style.lineHeight = '1.5';
             container.appendChild(fallbackEl);
@@ -3088,8 +3102,13 @@ class ChatView extends ItemView {
       } else if (!inGrammarBlock && buffer.length >= CHARS_PER_CHUNK) {
         // Flush plain text in small chunks for streaming effect
         if (!plainTextContainer) {
-          plainTextContainer = container.createDiv({ cls: 'grammar-block-appear' });
+          plainTextContainer = container.createDiv();
           plainTextContainer.style.lineHeight = '1.5';
+          // Only animate the very first container
+          if (isFirstContainer) {
+            plainTextContainer.classList.add('grammar-block-appear');
+            isFirstContainer = false;
+          }
         }
         plainTextContainer.textContent += buffer;
         buffer = '';
