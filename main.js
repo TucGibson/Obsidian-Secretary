@@ -727,6 +727,12 @@ You have semantic search via embeddings. Use retrieve_relevant_chunks for meanin
 
 - **Semantic understanding**: retrieve_relevant_chunks now finds conceptually similar content, not just keyword matches. "burnout" will find "exhaustion", "stress", "overwhelmed".
 
+## User Communication
+- Use \`send_status(message)\` to keep users informed about what you're doing
+- Send brief, friendly updates when starting multi-step operations
+- Examples: "Let me search through your notes...", "Checking your project files...", "Looking for recent entries..."
+- This builds transparency and engagement - use it liberally!
+
 ## Budget
 - Estimate tokens ≈ chars/4, round up to 1k bands.
 - Bands: ≤5k proceed; 5–10k narrow/paginate; 10–20k ask user; >20k revise plan.
@@ -737,13 +743,15 @@ You have semantic search via embeddings. Use retrieve_relevant_chunks for meanin
 
 ## Examples
 - **Query: "What did I write about productivity?"**
-  1) \`list_files(folder="Journal/")\`
-  2) \`retrieve_relevant_chunks(query="productivity", within_paths=items, k=8)\` - finds semantic matches
-  3) \`output_to_user("[summary with citations]")\`
+  1) \`send_status("Let me search through your notes...")\`
+  2) \`list_files(folder="Journal/")\`
+  3) \`retrieve_relevant_chunks(query="productivity", within_paths=items, k=8)\` - finds semantic matches
+  4) \`output_to_user("[summary with citations]")\`
 
 - **Query: "How many journal entries?"**
-  1) \`list_files(folder="Journal/", mode:"count")\`
-  2) \`output_to_user("You have N entries.")\``;
+  1) \`send_status("Counting your journal entries...")\`
+  2) \`list_files(folder="Journal/", mode:"count")\`
+  3) \`output_to_user("You have N entries.")\``;
   }
   
   getDefaultPillar5() {
@@ -1939,6 +1947,30 @@ class ToolManager {
             message: args.message
           };
         }
+      },
+
+      send_status: {
+        schema: {
+          type: 'function',
+          name: 'send_status',
+          description: 'Send a brief, friendly status update to show the user what you\'re currently doing. Use this to keep them informed and engaged as you work through their request.',
+          parameters: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                description: 'Brief status message (e.g., "Searching through your daily notes...", "Let me check your project files...")'
+              }
+            },
+            required: ['message']
+          }
+        },
+        execute: async (args) => {
+          return {
+            status_update: true,
+            message: args.message
+          };
+        }
       }
     };
   }
@@ -2147,23 +2179,42 @@ class AgentLoop {
       const { name, arguments: args, id } = toolCall;
       
       this.sendToolCall(name, args);
-      
-      if (name === 'output_to_user') {
-        this.finalOutput = args.message;
-        this.isDone = true;
-        this.sendUpdate('Final output ready');
-        
+
+      if (name === 'send_status') {
+        // Send status update to UI
+        this.sendUpdate(args.message);
+
         const result = {
-          final_output: true,
+          status_update: true,
           message: args.message
         };
-        
+
         outputs.push({
           type: "function_call_output",
           call_id: id,
           output: JSON.stringify(result)
         });
-        
+
+        this.sendToolResult(name, result);
+        continue;
+      }
+
+      if (name === 'output_to_user') {
+        this.finalOutput = args.message;
+        this.isDone = true;
+        this.sendUpdate('Final output ready');
+
+        const result = {
+          final_output: true,
+          message: args.message
+        };
+
+        outputs.push({
+          type: "function_call_output",
+          call_id: id,
+          output: JSON.stringify(result)
+        });
+
         this.sendToolResult(name, result);
         continue;
       }
@@ -2451,7 +2502,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v3.0.3 - Semantic Grammar UI\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.1.0 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -2944,6 +2995,7 @@ class ChatView extends ItemView {
       'search_lexical': () => `Searching for "${args.query || 'content'}"...`,
       'retrieve_relevant_chunks': () => `Finding relevant content about "${args.query || 'topic'}"...`,
       'output_to_user': () => null, // Don't show this in non-debug mode
+      'send_status': () => null, // Agent provides its own message via onUpdate
     };
 
     const summaryFn = summaries[name];
