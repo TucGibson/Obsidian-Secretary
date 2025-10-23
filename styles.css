@@ -165,7 +165,7 @@ body {
 
 /* System message */
 .system-message {
-    text-align: center;
+    text-align: left;
     font-size: var(--font-sm);
     color: var(--text-dim);
     margin-bottom: 24px;

@@ -2151,7 +2151,7 @@ class AgentLoop {
       if (name === 'output_to_user') {
         this.finalOutput = args.message;
         this.isDone = true;
-        this.sendUpdate('✓ Final output ready');
+        this.sendUpdate('Final output ready');
         
         const result = {
           final_output: true,
@@ -2454,9 +2454,9 @@ class ChatView extends ItemView {
     let welcomeMsg = 'AI Agent with Semantic RAG - v3.0.0 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
-      welcomeMsg += `✓ Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
+      welcomeMsg += `Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
     } else {
-      welcomeMsg += '⚠️ Vault not indexed yet. Click "Index Vault" to enable semantic search.';
+      welcomeMsg += 'Vault not indexed yet. Click "Index Vault" to enable semantic search.';
     }
 
     this.addMessage('system', welcomeMsg);
@@ -2600,22 +2600,27 @@ class ChatView extends ItemView {
     if (stats.indexing) {
       if (current > 0 && total > 0) {
         const percentage = Math.round((current / total) * 100);
-        this.statusEl.textContent = `⏳ Indexing: ${current}/${total} (${percentage}%)`;
+        this.statusEl.textContent = `Indexing: ${current}/${total} (${percentage}%)`;
       } else {
-        this.statusEl.textContent = '⏳ Indexing in progress...';
+        this.statusEl.textContent = 'Indexing in progress...';
       }
       this.statusEl.className = 'index-status indexing';
     } else if (stats.indexed) {
-      this.statusEl.textContent = `✓ Indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks`;
+      this.statusEl.textContent = `Indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks`;
       this.statusEl.className = 'index-status indexed';
     } else {
-      this.statusEl.textContent = '⚠️ Not indexed - click "Index Vault"';
+      this.statusEl.textContent = 'Not indexed - click "Index Vault"';
       this.statusEl.className = 'index-status not-indexed';
     }
   }
   
   async indexVault() {
-    const statusMsg = this.addMessage('system', '🔄 Starting indexing...');
+    const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+    const statusContainer = messageItem.createDiv({ cls: 'system-message' });
+
+    // Initial status
+    let statusEl = renderGrammar('[status:pending|Starting indexing...]', null, this.app);
+    statusContainer.appendChild(statusEl);
     this.updateIndexStatus();
 
     try {
@@ -2630,20 +2635,40 @@ class ChatView extends ItemView {
         if (fileChanged || now - lastUpdate > 200 || current === total) {
           const percentage = Math.round((current / total) * 100);
           const fileName = path.split('/').pop(); // Get just the filename
-          statusMsg.textContent = `🔄 Indexing: ${current}/${total} files (${percentage}%)\n📄 Current: ${fileName}`;
+
+          // Update status with Grammar UI
+          statusContainer.empty();
+          const grammar = `[grid:1|gap-sm
+[status:pending|Indexing: ${current}/${total} files (${percentage}%)]
+[text:xs|text-dim|Current: ${fileName}]
+]`;
+          statusEl = renderGrammar(grammar, null, this.app);
+          statusContainer.appendChild(statusEl);
+
           this.updateIndexStatus(fileName, current, total);
           lastUpdate = now;
           lastFile = path;
         }
       });
-      
+
       const stats = this.plugin.ragSystem.getIndexStats();
-      statusMsg.textContent = `✓ Indexing complete! ${stats.totalChunks} chunks from ${stats.totalFiles} files`;
+
+      // Final success status
+      statusContainer.empty();
+      const successGrammar = `[status:success|Indexing complete! ${stats.totalChunks} chunks from ${stats.totalFiles} files]`;
+      statusEl = renderGrammar(successGrammar, null, this.app);
+      statusContainer.appendChild(statusEl);
+
       this.updateIndexStatus();
       new Notice('Vault indexed successfully!');
-      
+
     } catch (error) {
-      statusMsg.textContent = `❌ Indexing failed: ${error.message}`;
+      // Error status
+      statusContainer.empty();
+      const errorGrammar = `[status:error|Indexing failed: ${error.message}]`;
+      statusEl = renderGrammar(errorGrammar, null, this.app);
+      statusContainer.appendChild(statusEl);
+
       new Notice('Indexing failed: ' + error.message);
       console.error('[ChatView] Indexing error:', error);
     }
@@ -2659,8 +2684,13 @@ class ChatView extends ItemView {
 
     this.addMessage('user', message);
 
-    const thinkingEl = this.chatEl.createDiv({ cls: 'chat-message thinking' });
-    thinkingEl.textContent = '🤔 Thinking...';
+    // Create thinking status with Grammar UI
+    const thinkingItem = this.chatEl.createDiv({ cls: 'message-item' });
+    const thinkingEl = thinkingItem.createDiv({ cls: 'system-message' });
+
+    // Render initial thinking status
+    const thinkingStatus = renderGrammar('[status:pending|Thinking...]', null, this.app);
+    thinkingEl.appendChild(thinkingStatus);
 
     // Get selected reasoning effort (default to 'low')
     const reasoningEffort = this.reasoningSelect?.value || 'low';
@@ -2670,15 +2700,21 @@ class ChatView extends ItemView {
 
       const result = await agentLoop.run({
         onUpdate: (msg) => {
-          thinkingEl.textContent = `🤔 ${msg}`;
+          // Update thinking status with current operation
+          thinkingEl.empty();
+          const updatedStatus = renderGrammar(`[status:pending|${msg}]`, null, this.app);
+          thinkingEl.appendChild(updatedStatus);
           this.scrollToBottom();
         },
         
         onToolCall: (name, args) => {
           if (this.debugMode) {
-            // Debug ON: Show full technical details
-            const toolEl = this.chatEl.createDiv({ cls: 'chat-message tool-call' });
-            toolEl.textContent = `🔧 ${name}(${JSON.stringify(args).slice(0, 100)}...)`;
+            // Debug ON: Show full technical details with status component
+            const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+            const systemMsg = messageItem.createDiv({ cls: 'system-message' });
+            const argsPreview = JSON.stringify(args).slice(0, 100);
+            const statusEl = renderGrammar(`[status:info|${name}(${argsPreview}...)]`, null, this.app);
+            systemMsg.appendChild(statusEl);
             this.scrollToBottom();
           } else {
             // Debug OFF: Show brief user-friendly summary
@@ -2686,7 +2722,8 @@ class ChatView extends ItemView {
             if (summary) {  // Only show if not empty
               const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
               const systemMsg = messageItem.createDiv({ cls: 'system-message' });
-              systemMsg.textContent = summary;
+              const statusEl = renderGrammar(`[status:pending|${summary}]`, null, this.app);
+              systemMsg.appendChild(statusEl);
               this.scrollToBottom();
             }
           }
@@ -2694,22 +2731,24 @@ class ChatView extends ItemView {
 
         onToolResult: (name, result) => {
           if (this.debugMode) {
-            // Debug ON: Show full result
-            const resultEl = this.chatEl.createDiv({ cls: 'chat-message tool-result' });
+            // Debug ON: Show full result with success status
+            const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+            const systemMsg = messageItem.createDiv({ cls: 'system-message' });
             const preview = JSON.stringify(result).slice(0, 150);
-            resultEl.textContent = `✓ ${name} → ${preview}...`;
+            const statusEl = renderGrammar(`[status:success|${name} completed]`, null, this.app);
+            systemMsg.appendChild(statusEl);
             this.scrollToBottom();
           }
           // Debug OFF: Don't show tool results to keep UI clean
         },
         
         onApprovalNeeded: async (details) => {
-          thinkingEl.remove();
+          thinkingItem.remove();
           return await this.requestUserApproval(details);
         }
       });
-      
-      thinkingEl.remove();
+
+      thinkingItem.remove();
       
       if (result.success) {
         this.addMessage('assistant', result.finalOutput);
@@ -2720,9 +2759,9 @@ class ChatView extends ItemView {
       } else {
         this.addMessage('error', result.error || 'Agent failed');
       }
-      
+
     } catch (error) {
-      thinkingEl.remove();
+      thinkingItem.remove();
       this.addMessage('error', error.message);
     }
     
@@ -2733,34 +2772,40 @@ class ChatView extends ItemView {
   
   async requestUserApproval(details) {
     return new Promise((resolve) => {
-      const approvalEl = this.chatEl.createDiv({ cls: 'chat-message approval-request' });
-      approvalEl.createEl('p', { text: '⚠️ Approval Required' });
-      approvalEl.createEl('p', { text: details });
-      
-      const btnContainer = approvalEl.createDiv({ cls: 'approval-buttons' });
-      
-      const approveBtn = btnContainer.createEl('button', {
-        cls: 'approval-btn approve',
-        text: 'Approve'
-      });
-      
-      const denyBtn = btnContainer.createEl('button', {
-        cls: 'approval-btn deny',
-        text: 'Deny'
-      });
-      
-      approveBtn.onclick = () => {
-        approvalEl.remove();
-        this.addMessage('system', '✓ Operation approved');
-        resolve(true);
-      };
-      
-      denyBtn.onclick = () => {
-        approvalEl.remove();
-        this.addMessage('system', '✗ Operation denied');
-        resolve(false);
-      };
-      
+      const messageItem = this.chatEl.createDiv({ cls: 'message-item' });
+      const approvalEl = messageItem.createDiv({ cls: 'system-message' });
+
+      // Create Grammar UI for approval request
+      const grammar = `[grid:2|gap-md|grid-border|padding-lg
+[grid:auto|gap-sm|align-center
+[icon:alert-triangle|icon-dim]
+[text:base|text-medium|Approval Required]
+]
+[text:sm|text-dim|${details}]
+[grid:2|gap-sm
+[button:primary|approve|Approve]
+[button:primary|deny|Deny]
+]
+]`;
+
+      const approvalComponent = renderGrammar(grammar, (action, props) => {
+        messageItem.remove();
+        if (action === 'approve') {
+          const statusMsg = this.chatEl.createDiv({ cls: 'message-item' });
+          const statusEl = statusMsg.createDiv({ cls: 'system-message' });
+          const status = renderGrammar('[status:success|Operation approved]', null, this.app);
+          statusEl.appendChild(status);
+          resolve(true);
+        } else if (action === 'deny') {
+          const statusMsg = this.chatEl.createDiv({ cls: 'message-item' });
+          const statusEl = statusMsg.createDiv({ cls: 'system-message' });
+          const status = renderGrammar('[status:error|Operation denied]', null, this.app);
+          statusEl.appendChild(status);
+          resolve(false);
+        }
+      }, this.app);
+
+      approvalEl.appendChild(approvalComponent);
       this.scrollToBottom();
     });
   }
@@ -2823,14 +2868,15 @@ class ChatView extends ItemView {
         contentEl.textContent = text.startsWith('✦') ? text : '✦ ' + text;
       }
     } else if (role === 'system') {
-      // System messages: centered, dimmed text
+      // System messages: left-aligned, dimmed text
       contentEl = messageItem.createDiv({ cls: 'system-message' });
       contentEl.textContent = text;
     } else if (role === 'error') {
-      // Error messages: use system style with error indicator
+      // Error messages: use Grammar UI status component
       contentEl = messageItem.createDiv({ cls: 'system-message' });
-      contentEl.textContent = `❌ ${text}`;
-      contentEl.style.color = 'var(--text-error)';
+      const errorStatus = renderGrammar(`[status:error|${text}]`, null, this.app);
+      contentEl.appendChild(errorStatus);
+      return messageItem;
     } else {
       // Fallback for any other role
       contentEl = messageItem.createDiv({ cls: 'system-message' });
