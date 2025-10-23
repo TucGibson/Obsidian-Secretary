@@ -574,15 +574,30 @@ class GrammarStreamParser {
   /**
    * Extract complete Grammar blocks from buffer
    * A block is complete when it has matching opening/closing brackets
+   * Returns both blocks and any plain text before them
    */
   extractCompleteBlocks() {
-    const newBlocks = [];
+    const results = [];
     let searchStart = this.renderedLength;
 
     while (searchStart < this.buffer.length) {
       // Find next opening bracket
       const openIdx = this.buffer.indexOf('[', searchStart);
-      if (openIdx === -1) break;
+
+      // Check if there's plain text before the next bracket
+      if (openIdx === -1 || openIdx > searchStart) {
+        // Get plain text up to next bracket or end of buffer
+        const endIdx = openIdx === -1 ? this.buffer.length : openIdx;
+        const plainText = this.buffer.substring(searchStart, endIdx).trim();
+
+        if (plainText) {
+          results.push({ type: 'text', content: plainText });
+          searchStart = endIdx;
+          this.renderedLength = searchStart;
+        }
+
+        if (openIdx === -1) break; // No more brackets
+      }
 
       // Try to find matching closing bracket
       const closeIdx = this.findMatchingBracket(openIdx);
@@ -590,7 +605,7 @@ class GrammarStreamParser {
       if (closeIdx !== -1) {
         // Found complete block
         const block = this.buffer.substring(openIdx, closeIdx + 1);
-        newBlocks.push(block);
+        results.push({ type: 'grammar', content: block });
         searchStart = closeIdx + 1;
         this.renderedLength = searchStart;
       } else {
@@ -599,7 +614,7 @@ class GrammarStreamParser {
       }
     }
 
-    return newBlocks;
+    return results;
   }
 
   /**
@@ -2599,7 +2614,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v3.2.0 - Semantic Grammar UI\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.2.1 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -2989,29 +3004,17 @@ class ChatView extends ItemView {
    * Simulates streaming by breaking into character chunks and rendering complete blocks
    */
   async renderProgressiveGrammar(container, text) {
-    // Check if text has intro text before grammar
-    const grammarPattern = /\[(?:text|icon|grid|container|button|divider|listitem|status|spinner|file-result|search-result|file-list-item|tag-group|stat-card)[:|\]]/;
-    const grammarMatch = text.match(grammarPattern);
-
-    let introEl = null;
-
-    if (grammarMatch && grammarMatch.index > 0) {
-      // Has intro text - render it immediately
-      const introText = text.substring(0, grammarMatch.index).trim();
-      if (introText) {
-        introEl = container.createDiv({ cls: 'message-intro' });
-        introEl.textContent = introText;
-        introEl.style.marginBottom = '12px';
-      }
-      // Process only the grammar portion
-      text = text.substring(grammarMatch.index);
+    // Auto-prepend "✦" marker if not already there
+    if (!text.startsWith('✦')) {
+      text = '✦ ' + text;
     }
 
     const parser = new GrammarStreamParser();
-    const CHARS_PER_CHUNK = 15; // Characters to add per interval
-    const CHUNK_DELAY = 20; // Milliseconds between chunks
+    const CHARS_PER_CHUNK = 20; // Characters to add per interval
+    const CHUNK_DELAY = 30; // Milliseconds between chunks
 
     let currentPos = 0;
+    let plainTextContainer = null; // For accumulating plain text
 
     const processNextChunk = () => {
       if (currentPos >= text.length) {
@@ -3023,26 +3026,51 @@ class ChatView extends ItemView {
       const chunk = text.substring(currentPos, nextPos);
       currentPos = nextPos;
 
-      const completeBlocks = parser.addChunk(chunk);
+      const items = parser.addChunk(chunk);
 
-      // Render each complete block with animation
-      for (const block of completeBlocks) {
-        try {
-          const blockEl = renderGrammar(block, (action, props) => {
-            console.log('Grammar action:', action, props);
-            new Notice(`Action: ${action}`);
-          }, this.app);
+      // Render each item (could be text or grammar block)
+      for (const item of items) {
+        if (item.type === 'text') {
+          // Plain text - accumulate in a text container
+          if (!plainTextContainer) {
+            plainTextContainer = container.createDiv({ cls: 'grammar-block-appear' });
+            plainTextContainer.style.lineHeight = '1.5';
+          }
 
-          // Add animation class
-          blockEl.classList.add('grammar-block-appear');
+          // Append text (with space if not first)
+          if (plainTextContainer.textContent) {
+            plainTextContainer.textContent += ' ' + item.content;
+          } else {
+            plainTextContainer.textContent = item.content;
+          }
 
-          // Append to container
-          container.appendChild(blockEl);
-
-          // Scroll to bottom to show new block
           this.scrollToBottom();
-        } catch (error) {
-          console.error('[ChatView] Grammar rendering error:', error, block);
+
+        } else if (item.type === 'grammar') {
+          // Grammar block - reset plain text container and render
+          plainTextContainer = null;
+
+          try {
+            const blockEl = renderGrammar(item.content, (action, props) => {
+              console.log('Grammar action:', action, props);
+              new Notice(`Action: ${action}`);
+            }, this.app);
+
+            // Add animation class
+            blockEl.classList.add('grammar-block-appear');
+
+            // Append to container
+            container.appendChild(blockEl);
+
+            // Scroll to bottom to show new block
+            this.scrollToBottom();
+          } catch (error) {
+            console.error('[ChatView] Grammar rendering error:', error, item.content);
+            // Fallback: render as plain text
+            const fallbackEl = container.createDiv({ cls: 'grammar-block-appear' });
+            fallbackEl.textContent = item.content;
+            fallbackEl.style.lineHeight = '1.5';
+          }
         }
       }
 
