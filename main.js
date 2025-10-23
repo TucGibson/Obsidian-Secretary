@@ -2501,7 +2501,7 @@ class ChatView extends ItemView {
     this.chatEl = container.createDiv({ cls: 'chat-messages' });
 
     const stats = this.plugin.ragSystem.getIndexStats();
-    let welcomeMsg = 'AI Agent with Semantic RAG - v3.1.1 - Semantic Grammar UI\n\n';
+    let welcomeMsg = 'AI Agent with Semantic RAG - v3.1.2 - Semantic Grammar UI\n\n';
 
     if (stats.indexed) {
       welcomeMsg += `Vault indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks\nReady to answer questions with semantic understanding!`;
@@ -2817,21 +2817,22 @@ class ChatView extends ItemView {
         }
       });
 
-      thinkingItem.remove();
-      
       if (result.success) {
+        // Add final output first, THEN remove thinking block
         this.addMessage('assistant', result.finalOutput);
+        thinkingItem.remove();
 
         if (result.usage) {
           this.addUsageStats(result.usage, result.iterations, result.elapsedMs);
         }
       } else {
         this.addMessage('error', result.error || 'Agent failed');
+        thinkingItem.remove();
       }
 
     } catch (error) {
-      thinkingItem.remove();
       this.addMessage('error', error.message);
+      thinkingItem.remove();
     }
     
     this.inputEl.disabled = false;
