@@ -3000,12 +3000,12 @@ class ChatView extends ItemView {
   }
 
   /**
-   * Render Grammar syntax progressively with animations
-   * Plain text streams character-by-character, Grammar blocks appear when complete
+   * Render Grammar syntax with animation
+   * Renders complete output to preserve Grammar structure
    */
   async renderProgressiveGrammar(container, text) {
     // Log raw output for debugging
-    console.log('[Progressive Render] Raw agent output:');
+    console.log('[Grammar Render] Raw agent output:');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(text);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -3015,120 +3015,28 @@ class ChatView extends ItemView {
       text = '✦ ' + text;
     }
 
-    const CHARS_PER_CHUNK = 3; // Stream faster for smoother text
-    const CHUNK_DELAY = 10; // Milliseconds between chunks
+    // Render complete output to preserve Grammar structure
+    // Character-by-character rendering breaks Grammar syntax where content comes after ]
+    try {
+      const outputEl = renderGrammar(text, (action, props) => {
+        console.log('Grammar action:', action, props);
+        new Notice(`Action: ${action}`);
+      }, this.app);
 
-    let currentPos = 0;
-    let plainTextContainer = null;
-    let buffer = ''; // Buffer for detecting Grammar blocks
-    let inGrammarBlock = false;
-    let bracketDepth = 0;
-    let isFirstContainer = true; // Track if this is the first container
-
-    const processNextChunk = () => {
-      if (currentPos >= text.length) {
-        // Flush any remaining buffer as plain text
-        const trimmed = buffer.trim();
-        if (trimmed && trimmed !== '✦') {
-          if (!plainTextContainer) {
-            plainTextContainer = container.createDiv();
-            plainTextContainer.style.lineHeight = '1.5';
-            // Only animate the very first container
-            if (isFirstContainer) {
-              plainTextContainer.classList.add('grammar-block-appear');
-              isFirstContainer = false;
-            }
-          }
-          plainTextContainer.textContent += buffer;
-          buffer = '';
-          this.scrollToBottom();
-        }
-        return; // Done
-      }
-
-      // Get next character
-      const char = text[currentPos];
-      currentPos++;
-      buffer += char;
-
-      // Track bracket depth to detect complete Grammar blocks
-      if (char === '[') {
-        if (bracketDepth === 0) {
-          // Potential start of Grammar block
-          // Flush any plain text before this
-          if (buffer.length > 1) { // More than just the '['
-            const plainText = buffer.substring(0, buffer.length - 1);
-            // Only create container if there's actual content (not just whitespace/stars)
-            const trimmed = plainText.trim();
-            if (trimmed && trimmed !== '✦') {
-              if (!plainTextContainer) {
-                plainTextContainer = container.createDiv();
-                plainTextContainer.style.lineHeight = '1.5';
-                // Only animate the very first container
-                if (isFirstContainer) {
-                  plainTextContainer.classList.add('grammar-block-appear');
-                  isFirstContainer = false;
-                }
-              }
-              plainTextContainer.textContent += plainText;
-              this.scrollToBottom();
-            }
-            buffer = '['; // Keep only the opening bracket
-          }
-        }
-        bracketDepth++;
-        inGrammarBlock = true;
-      } else if (char === ']') {
-        bracketDepth--;
-        if (bracketDepth === 0 && inGrammarBlock) {
-          // Complete Grammar block found
-          const grammarBlock = buffer;
-          console.log('[Progressive Render] Grammar block detected:', grammarBlock);
-          buffer = '';
-          inGrammarBlock = false;
-          plainTextContainer = null; // Reset for next plain text section
-
-          try {
-            const blockEl = renderGrammar(grammarBlock, (action, props) => {
-              console.log('Grammar action:', action, props);
-              new Notice(`Action: ${action}`);
-            }, this.app);
-
-            blockEl.classList.add('grammar-block-appear');
-            container.appendChild(blockEl);
-            console.log('[Progressive Render] Grammar block rendered successfully');
-            this.scrollToBottom();
-          } catch (error) {
-            console.error('[Progressive Render] Grammar rendering error:', error, grammarBlock);
-            // Fallback: render as plain text
-            const fallbackEl = container.createDiv();
-            fallbackEl.textContent = grammarBlock;
-            fallbackEl.style.lineHeight = '1.5';
-            container.appendChild(fallbackEl);
-          }
-        }
-      } else if (!inGrammarBlock && buffer.length >= CHARS_PER_CHUNK) {
-        // Flush plain text in small chunks for streaming effect
-        if (!plainTextContainer) {
-          plainTextContainer = container.createDiv();
-          plainTextContainer.style.lineHeight = '1.5';
-          // Only animate the very first container
-          if (isFirstContainer) {
-            plainTextContainer.classList.add('grammar-block-appear');
-            isFirstContainer = false;
-          }
-        }
-        plainTextContainer.textContent += buffer;
-        buffer = '';
-        this.scrollToBottom();
-      }
-
-      // Schedule next chunk
-      setTimeout(processNextChunk, CHUNK_DELAY);
-    };
-
-    // Start processing
-    processNextChunk();
+      // Add fade-in animation
+      outputEl.classList.add('grammar-block-appear');
+      container.appendChild(outputEl);
+      console.log('[Grammar Render] Complete output rendered successfully');
+      this.scrollToBottom();
+    } catch (error) {
+      console.error('[Grammar Render] Rendering error:', error);
+      // Fallback: render as plain text
+      const fallbackEl = container.createDiv();
+      fallbackEl.textContent = text.startsWith('✦') ? text : '✦ ' + text;
+      fallbackEl.style.lineHeight = '1.5';
+      fallbackEl.classList.add('grammar-block-appear');
+      container.appendChild(fallbackEl);
+    }
   }
 
   addMessage(role, text) {
