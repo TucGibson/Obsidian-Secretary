@@ -650,13 +650,13 @@ button.btn.btn:hover,
 
 /* Progressive Grammar Block Animations */
 .grammar-block-appear {
-    animation: grammarBlockFadeIn 0.3s ease-out;
+    animation: grammarBlockFadeIn 0.2s ease-out;
 }
 
 @keyframes grammarBlockFadeIn {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(6px);
     }
     to {
         opacity: 1;

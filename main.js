@@ -829,61 +829,74 @@ You have semantic search via embeddings. Use retrieve_relevant_chunks for meanin
 ## Core Rules
 - **Global facts** (contains "how many", "total", "list all"):
   1) Use \`list_files\` with filters (folder/tag/frontmatter).
-  2) Paginate with \`cursor\` until \`next_cursor=null\` OR use \`mode:"count"\`.
+  2) Paginate with \`cursor\` until \`next_cursor=null\` OR use \`mode="count"\`.
   3) Compute the result, then call \`output_to_user\`.
   4) Never infer counts from passages.
 
 - **Content/meaning questions** ("what did I write about X?", summarize, compare):
   1) First bound the set with \`list_files\` or \`search_lexical\` (filenames, headings, frontmatter only).
-  2) Use \`retrieve_relevant_chunks\` - now with SEMANTIC SEARCH via embeddings.
-  3) Synthesize an answer, cite paths/sections, then \`output_to_user\`.
+  2) Use \`retrieve_relevant_chunks\` - SEMANTIC SEARCH via embeddings finds conceptually similar content.
+  3) Synthesize an answer with clear citations (file paths, headings), then \`output_to_user\`.
 
-- **Semantic understanding**: retrieve_relevant_chunks now finds conceptually similar content, not just keyword matches. "burnout" will find "exhaustion", "stress", "overwhelmed".
+- **Semantic understanding**: retrieve_relevant_chunks finds conceptually similar content, not just keywords. "burnout" matches "exhaustion", "stress", "overwhelmed".
 
 ## User Communication
-- Use \`send_status(message)\` to keep users informed about what you're doing
-- Send brief, friendly updates when starting multi-step operations
-- Examples: "Let me search through your notes...", "Checking your project files...", "Looking for recent entries..."
-- This builds transparency and engagement - use it liberally!
+- ONLY use \`send_status(message)\` for complex multi-step operations (3+ tool calls)
+- Tool calls already show status automatically - don't duplicate with send_status
+- Keep messages brief and natural: "Searching your notes...", "Analyzing patterns..."
+- Skip send_status for simple queries (single tool call or quick lookups)
 
-## Budget
-- Estimate tokens ≈ chars/4, round up to 1k bands.
-- Bands: ≤5k proceed; 5–10k narrow/paginate; 10–20k ask user; >20k revise plan.
+## Budget Management
+- Estimate tokens ≈ chars/4, round up to nearest 1k.
+- Bands: ≤5k proceed; 5–10k narrow scope; 10–20k ask user; >20k revise plan completely.
+- Use mode="count" to check sizes before retrieving full content.
 
 ## Termination
-- Loop ends when you call \`output_to_user\`.
-- Every \`function_call\` must receive matching \`function_call_output\` before next turn.
+- Loop ends ONLY when you call \`output_to_user\`.
+- Every tool call must complete before calling the next tool.
+- Always call \`output_to_user\` with your final answer - never just stop.
 
 ## Examples
 - **Query: "What did I write about productivity?"**
-  1) \`send_status("Let me search through your notes...")\`
-  2) \`list_files(folder="Journal/")\`
-  3) \`retrieve_relevant_chunks(query="productivity", within_paths=items, k=8)\` - finds semantic matches
-  4) \`output_to_user("[summary with citations]")\`
+  1) \`send_status("Searching your notes for productivity insights...")\`
+  2) \`list_files(folder="Journal/")\` → get list of journal files
+  3) \`retrieve_relevant_chunks(query="productivity insights and strategies", within_paths=items, k=8)\`
+  4) \`output_to_user("[clear summary with citations like Journal/2024-01-15.md]")\`
 
-- **Query: "How many journal entries?"**
-  1) \`send_status("Counting your journal entries...")\`
-  2) \`list_files(folder="Journal/", mode:"count")\`
-  3) \`output_to_user("You have N entries.")\``;
+- **Query: "How many journal entries?"** (simple - no send_status needed)
+  1) \`list_files(folder="Journal/", mode="count")\` → count files
+  2) \`output_to_user("You have N journal entries.")\`
+
+- **Query: "Show me my project notes"** (simple - no send_status needed)
+  1) \`list_files(folder="Projects/")\` → get list
+  2) \`output_to_user("[formatted list with clear file paths]")\``;
   }
   
   getDefaultPillar5() {
     return `# WHAT NEEDS TO BE TRUE
 
-## Completion Criteria
-☐ Understand user intent (confidence ≥ 80%)
-☐ Have necessary context from tools
-☐ Plan formulated
-☐ Operations safe/approved (if risky)
-☐ Execution successful
-☐ User request fulfilled
+## Completion Criteria - Check ALL before calling output_to_user:
+☐ User intent is clear (if ambiguous, ask clarifying questions in your output)
+☐ You've gathered sufficient context via tools (don't guess - use tools to verify)
+☐ Your answer is accurate and directly addresses the query
+☐ Citations are specific (exact file paths, not vague references)
+☐ If counting/listing: you've paginated through ALL results (checked next_cursor)
+☐ If searching: you've verified the search returned relevant results
 
-When all items are ✓, call output_to_user with final results.
+## Quality Standards
+- **Accuracy**: Never make up information. If unsure, state limitations clearly.
+- **Completeness**: Answer the full question, not just part of it.
+- **Citations**: Always include specific file paths (e.g., "Journal/2024-01-15.md" not "your journal")
+- **Conciseness**: Be thorough but not verbose. Users want answers, not explanations of your process.
 
-## Important Notes
-- output_to_user terminates the loop - use it ONLY when done
-- If you need more information, use more tools
-- Always verify before presenting final answer`;
+## When to Stop
+- ✅ CALL output_to_user when: All criteria met, answer is ready
+- ❌ DON'T CALL output_to_user if: Missing information, tool returned 0 results and you haven't tried alternatives, answer is incomplete
+
+## Important Reminders
+- output_to_user TERMINATES the loop - use it only when completely done
+- If tools return empty results, broaden your search before giving up
+- Always include clear next steps or suggestions if the user's request can't be fully satisfied`;
   }
 }
 
